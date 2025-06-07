@@ -687,8 +687,12 @@ Based on successful conversion, the Intel HEX output structure:
 - **`:00000001FF`**: End-of-file record
 
 ## 📸 Implementation Output
+![Screenshot 2025-06-07 212904](https://github.com/user-attachments/assets/b878b15a-6688-4fbb-9ff0-4fa9a95d3aab)
+![Screenshot 2025-06-07 212951](https://github.com/user-attachments/assets/4b1877ed-ad04-480f-a664-e9365b08a1cd)
+![Screenshot 2025-06-07 213019](https://github.com/user-attachments/assets/cbd1a92f-c46d-4543-9339-b85b9e1e91bc)
+![Screenshot 2025-06-07 213043](https://github.com/user-attachments/assets/b7866acd-f5d2-4e81-a331-df412edf0281)
 
-![Task 4 Hex Dump and Disassembly](screenshots/task4_hex_disassembly.png)
+
 
 *Screenshot demonstrating successful binary disassembly with detailed column analysis and Intel HEX conversion showing machine code structure and memory layout.*
 
