@@ -4804,3 +4804,517 @@ With printf retargeting mastery achieved:
 
 ---
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# 🔄 Task 17: Endianness & Struct Packing - RISC-V Byte Order Verification
+
+[![RISC-V](https://img.shields.io/badge/Architecture-RISC--V-blue.svg)](https://riscv.org/)
+[![Endianness](https://img.shields.io/badge/Feature-Little%20Endian-green.svg)]()
+[![Struct Packing](https://img.shields.io/badge/Technique-Memory%20Layout-orange.svg)]()
+[![Status](https://img.shields.io/badge/Status-✅%20Complete-success.svg)]()
+
+## 🎯 Objective
+
+Verify that RV32 is little-endian by default using the union trick in C. Demonstrate byte ordering verification by storing a 32-bit value and examining individual bytes. Additionally, explore struct packing and alignment behavior to understand memory layout in RISC-V systems.[1][3]
+
+## 📋 Prerequisites
+
+- ✅ Task 16 completed: Understanding of printf retargeting and system programming
+- ✅ RISC-V toolchain with cross-compilation capabilities
+- ✅ Knowledge of C unions, structs, and memory layout concepts
+- ✅ Understanding of endianness concepts and their importance
+
+## 🚀 Step-by-Step Implementation (Working Commands)
+
+### Step 1: Create Comprehensive Endianness Verification Program
+
+ Create comprehensive endianness and struct packing demo
+```bash
+cat << 'EOF' > task17_endianness.c
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+
+// Test endianness using union trick
+void test_endianness(void) {
+    union {
+        uint32_t i;
+        uint8_t c[4];
+    } test_union;
+
+    test_union.i = 0x01020304;
+
+    printf("=== Endianness Test ===\n");
+    printf("32-bit value: 0x%08X\n", test_union.i);
+    printf("Byte order in memory: ");
+    for (int j = 0; j < 4; j++) {
+        printf("%02X ", test_union.c[j]);
+    }
+    printf("\n");
+
+    if (test_union.c[0] == 0x04) {
+        printf("System is LITTLE-ENDIAN\n");
+        printf("Least significant byte (0x04) stored at lowest address\n");
+    } else if (test_union.c[0] == 0x01) {
+        printf("System is BIG-ENDIAN\n");
+        printf("Most significant byte (0x01) stored at lowest address\n");
+    } else {
+        printf("Unknown endianness\n");
+    }
+}
+
+// Test struct packing and alignment
+void test_struct_packing(void) {
+    printf("\n=== Struct Packing Test ===\n");
+
+    // Regular struct (with padding)
+    struct regular_struct {
+        uint8_t  a;    // 1 byte
+        uint32_t b;    // 4 bytes (3 bytes padding after 'a')
+        uint16_t c;    // 2 bytes
+        uint8_t  d;    // 1 byte (1 byte padding after to align to 4-byte boundary)
+    };
+
+    // Packed struct (no padding)
+    struct __attribute__((packed)) packed_struct {
+        uint8_t  a;    // 1 byte
+        uint32_t b;    // 4 bytes
+        uint16_t c;    // 2 bytes
+        uint8_t  d;    // 1 byte
+    };
+
+    printf("Regular struct size: %zu bytes\n", sizeof(struct regular_struct));
+    printf("Packed struct size:  %zu bytes\n", sizeof(struct packed_struct));
+    
+    // Test actual memory layout
+    struct regular_struct reg = {0xAA, 0x12345678, 0xBBCC, 0xDD};
+    struct packed_struct pack = {0xAA, 0x12345678, 0xBBCC, 0xDD};
+    
+    printf("\nRegular struct memory layout:\n");
+    uint8_t *reg_ptr = (uint8_t *)&reg;
+    for (size_t i = 0; i < sizeof(struct regular_struct); i++) {
+        printf("Offset %zu: 0x%02X\n", i, reg_ptr[i]);
+    }
+    
+    printf("\nPacked struct memory layout:\n");
+    uint8_t *pack_ptr = (uint8_t *)&pack;
+    for (size_t i = 0; i < sizeof(struct packed_struct); i++) {
+        printf("Offset %zu: 0x%02X\n", i, pack_ptr[i]);
+    }
+}
+
+// Test different data type endianness
+void test_data_types_endianness(void) {
+    printf("\n=== Data Type Endianness Test ===\n");
+    
+    // Test 16-bit value
+    union {
+        uint16_t val16;
+        uint8_t bytes16[2];
+    } test16;
+    test16.val16 = 0x1234;
+    
+    printf("16-bit value 0x%04X: ", test16.val16);
+    printf("bytes = [0x%02X, 0x%02X]\n", test16.bytes16[0], test16.bytes16[1]);
+    
+    // Test 64-bit value
+    union {
+        uint64_t val64;
+        uint8_t bytes64[8];
+    } test64;
+    test64.val64 = 0x0102030405060708ULL;
+    
+    printf("64-bit value 0x%016llX:\n", test64.val64);
+    printf("bytes = [");
+    for (int i = 0; i < 8; i++) {
+        printf("0x%02X", test64.bytes64[i]);
+        if (i < 7) printf(", ");
+    }
+    printf("]\n");
+}
+
+// Test pointer and address layout
+void test_pointer_layout(void) {
+    printf("\n=== Pointer and Address Layout ===\n");
+    
+    uint32_t array[4] = {0x11111111, 0x22222222, 0x33333333, 0x44444444};
+    
+    printf("Array addresses and values:\n");
+    for (int i = 0; i < 4; i++) {
+        printf("array[%d] @ %p = 0x%08X\n", i, &array[i], array[i]);
+    }
+    
+    printf("\nMemory dump of array:\n");
+    uint8_t *byte_ptr = (uint8_t *)array;
+    for (int i = 0; i < 16; i++) {
+        printf("Byte %2d: 0x%02X\n", i, byte_ptr[i]);
+    }
+}
+
+int main() {
+    printf("=== Task 17: RISC-V Endianness & Struct Packing ===\n\n");
+    
+    test_endianness();
+    test_struct_packing();
+    test_data_types_endianness();
+    test_pointer_layout();
+    
+    printf("\n=== RISC-V Endianness Conclusion ===\n");
+    printf("RV32 is LITTLE-ENDIAN by default\n");
+    printf("- Least significant byte stored at lowest memory address\n");
+    printf("- Most significant byte stored at highest memory address\n");
+    printf("- This matches x86/x86_64 byte ordering\n");
+    
+    return 0;
+}
+EOF
+```
+### Step 2: Create Simple Endianness Test
+Create focused endianness test (minimal version)
+```bash
+cat << 'EOF' > task17_simple_endian.c
+#include <stdio.h>
+#include <stdint.h>
+
+int main() {
+    // Union trick to test endianness
+    union {
+        uint32_t i;
+        uint8_t c[4];
+    } test_union;
+
+    test_union.i = 0x01020304;
+
+    printf("RISC-V Endianness Test\n");
+    printf("======================\n");
+    printf("32-bit value: 0x%08X\n", test_union.i);
+    printf("Byte order: ");
+    for (int j = 0; j < 4; j++) {
+        printf("%02X ", test_union.c[j]);
+    }
+    printf("\n");
+
+    if (test_union.c[0] == 0x04) {
+        printf("Result: RISC-V is LITTLE-ENDIAN\n");
+        printf("Explanation: LSB (0x04) is at lowest address\n");
+    } else if (test_union.c[0] == 0x01) {
+        printf("Result: RISC-V is BIG-ENDIAN\n");
+        printf("Explanation: MSB (0x01) is at lowest address\n");
+    } else {
+        printf("Result: Unknown endianness\n");
+    }
+
+    return 0;
+}
+EOF
+```
+### Step 3: Create Assembly Startup and Linker Script
+ Create startup code for endianness demo
+```bash
+cat << 'EOF' > endian_start.s
+.section .text.start
+.global _start
+
+_start:
+    # Set up stack pointer
+    lui sp, %hi(_stack_top)
+    addi sp, sp, %lo(_stack_top)
+    
+    # Initialize BSS section
+    la t0, _bss_start
+    la t1, _bss_end
+bss_loop:
+    bge t0, t1, bss_done
+    sw zero, 0(t0)
+    addi t0, t0, 4
+    j bss_loop
+bss_done:
+    
+    # Call main program
+    call main
+    
+    # Infinite loop
+1:  j 1b
+
+.size _start, . - _start
+EOF
+
+# Create linker script
+cat << 'EOF' > endian.ld
+ENTRY(_start)
+
+MEMORY
+{
+    FLASH (rx)  : ORIGIN = 0x00000000, LENGTH = 256K
+    SRAM  (rwx) : ORIGIN = 0x10000000, LENGTH = 64K
+}
+
+SECTIONS
+{
+    .text 0x00000000 : {
+        *(.text.start)
+        *(.text*)
+        *(.rodata*)
+    } > FLASH
+
+    .data 0x10000000 : {
+        _data_start = .;
+        *(.data*)
+        _data_end = .;
+    } > SRAM
+
+    .bss : {
+        _bss_start = .;
+        *(.bss*)
+        _bss_end = .;
+    } > SRAM
+
+    .heap : {
+        _heap_start = .;
+        . += 8192;
+        _heap_end = .;
+    } > SRAM
+
+    _stack_top = ORIGIN(SRAM) + LENGTH(SRAM);
+}
+EOF
+```
+### Step 4: Create Printf Support for Output
+ Create minimal printf support for endianness test
+```bash
+cat << 'EOF' > endian_printf.c
+#include <stdio.h>
+#include <stdint.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
+// UART for printf output
+#define UART_BASE 0x10000000
+#define UART_TX_REG (*(volatile uint32_t *)(UART_BASE + 0x00))
+
+void uart_putchar(char c) {
+    UART_TX_REG = (uint32_t)c;
+}
+
+int _write(int fd, char *buf, int len) {
+    if (fd == STDOUT_FILENO || fd == STDERR_FILENO) {
+        for (int i = 0; i < len; i++) {
+            uart_putchar(buf[i]);
+            if (buf[i] == '\n') {
+                uart_putchar('\r');
+            }
+        }
+        return len;
+    }
+    return -1;
+}
+
+// Minimal syscalls
+int _close(int fd) { return -1; }
+int _fstat(int fd, struct stat *st) { 
+    if (fd <= 2) { st->st_mode = S_IFCHR; return 0; }
+    return -1; 
+}
+int _isatty(int fd) { return (fd <= 2) ? 1 : 0; }
+int _lseek(int fd, int offset, int whence) { return -1; }
+int _read(int fd, char *buf, int len) { return -1; }
+EOF
+```
+### Step 5: Compile Endianness Demo
+ Compile endianness demonstration programs
+```bash
+riscv32-unknown-elf-gcc -march=rv32imc -c endian_start.s -o endian_start.o
+riscv32-unknown-elf-gcc -march=rv32imc -c task17_endianness.c -o task17_endianness.o
+riscv32-unknown-elf-gcc -march=rv32imc -c task17_simple_endian.c -o task17_simple_endian.o
+riscv32-unknown-elf-gcc -march=rv32imc -c endian_printf.c -o endian_printf.o
+```
+ Link comprehensive version
+```bash
+riscv32-unknown-elf-gcc -T endian.ld -nostartfiles endian_start.o task17_endianness.o endian_printf.o -o task17_endianness.elf
+```
+Link simple version
+```bash
+riscv32-unknown-elf-gcc -T endian.ld -nostartfiles endian_start.o task17_simple_endian.o endian_printf.o -o task17_simple_endian.elf
+```
+### Step 6: Create Complete Build Script
+ Create complete working build script for Task 17
+```bash
+cat << 'EOF' > build_endian_demo.sh
+#!/bin/bash
+echo "=== Task 17: Endianness & Struct Packing ==="
+
+# Compile all components
+echo "1. Compiling endianness demo components..."
+riscv32-unknown-elf-gcc -march=rv32imc -c endian_start.s -o endian_start.o
+riscv32-unknown-elf-gcc -march=rv32imc -c task17_endianness.c -o task17_endianness.o
+riscv32-unknown-elf-gcc -march=rv32imc -c task17_simple_endian.c -o task17_simple_endian.o
+riscv32-unknown-elf-gcc -march=rv32imc -c endian_printf.c -o endian_printf.o
+
+# Link programs
+echo "2. Linking endianness programs..."
+riscv32-unknown-elf-gcc -T endian.ld -nostartfiles endian_start.o task17_endianness.o endian_printf.o -o task17_endianness.elf
+riscv32-unknown-elf-gcc -T endian.ld -nostartfiles endian_start.o task17_simple_endian.o endian_printf.o -o task17_simple_endian.elf
+
+echo "✓ Compilation successful!"
+
+# Verify results
+echo -e "\n3. Verifying endianness demo programs:"
+file task17_endianness.elf
+file task17_simple_endian.elf
+
+echo -e "\n4. Checking union usage in disassembly:"
+riscv32-unknown-elf-objdump -d task17_simple_endian.elf | grep -A 10 -B 5 "main"
+
+echo -e "\n5. Symbol table showing endianness functions:"
+riscv32-unknown-elf-nm task17_simple_endian.elf | grep -E "(main|test|union)"
+
+echo -e "\n✓ Endianness demonstration ready!"
+EOF
+
+chmod +x build_endian_demo.sh
+./build_endian_demo.sh
+```
+### Step 7: Test and Verify Endianness
+ Generate assembly to see union operations
+```bash
+riscv32-unknown-elf-gcc -march=rv32imc -S task17_simple_endian.c
+```
+ Check how union is implemented
+```bash
+echo "=== Union Implementation Analysis ==="
+grep -A 15 -B 5 "test_union" task17_simple_endian.s
+```
+ Check memory layout operations
+```bash
+echo "=== Memory Access Patterns ==="
+grep -E "(sw|lw|lb|lbu)" task17_simple_endian.s | head -10
+```
+Expected Working Results:
+``` bash
+✅ Compilation Success:
+
+task17_endianness.elf: ELF 32-bit LSB executable, UCB RISC-V, RVC, soft-float ABI, version 1 (SYSV), statically linked
+task17_simple_endian.elf: ELF 32-bit LSB executable, UCB RISC-V, RVC, soft-float ABI, version 1 (SYSV), statically linked
+✅ Expected Program Output:
+
+RISC-V Endianness Test
+======================
+32-bit value: 0x01020304
+Byte order: 04 03 02 01 
+Result: RISC-V is LITTLE-ENDIAN
+Explanation: LSB (0x04) is at lowest address
+✅ Key Findings:
+RISC-V is LITTLE-ENDIAN by default
+
+Byte order: 04 03 02 01 (LSB first)
+
+Union trick works: Demonstrates memory layout clearly
+
+Struct packing: Shows alignment vs packed differences
+
+Memory layout: Consistent with little-endian architecture
+
+✅ Union Trick Explanation:
+Store 0x01020304 in uint32_t member
+
+Read as uint8_t array
+
+Little-endian result: [0x04, 0x03, 0x02, 0x01]
+
+Big-endian would be: [0x01, 0x02, 0x03, 0x04]
+```
+
+
+## 📸 Implementation Output
+![Screenshot 2025-06-08 020736](https://github.com/user-attachments/assets/46ffaced-9cd1-44ed-9d84-cb421fffd1ef)
+![Screenshot 2025-06-08 020744](https://github.com/user-attachments/assets/c43eb1ac-b8f7-49d1-89b5-b41f2ce2bfca)
+![Screenshot 2025-06-08 020750](https://github.com/user-attachments/assets/58be0d75-5f4d-42da-b293-8f9c733468b4)
+
+
+## 🎉 Success Criteria
+
+Task 17 is considered **complete** when:
+- [x] Union trick implemented correctly with uint32_t and uint8_t[4]
+- [x] Value 0x01020304 stored and individual bytes accessed
+- [x] Endianness verification shows LITTLE-ENDIAN result
+- [x] Assembly analysis confirms proper load/store operations
+- [x] Struct packing differences demonstrated (regular vs packed)
+- [x] Memory layout analysis shows alignment behavior
+- [x] Printf output correctly displays byte ordering
+- [x] Complete understanding of RISC-V endianness achieved
+
+## 💡 Key Learning Outcomes
+
+### **Endianness Mastery:**
+- ✅ **Union Trick Technique**: Understanding of memory layout verification methods
+- ✅ **RISC-V Endianness**: Confirmed little-endian default behavior
+- ✅ **Byte Ordering**: Complete knowledge of LSB/MSB memory placement
+- ✅ **Cross-Platform Compatibility**: Understanding endianness implications
+
+### **Memory Layout Understanding:**
+- ✅ **Struct Alignment**: Knowledge of automatic padding and alignment rules
+- ✅ **Packed Structures**: Control over memory layout with compiler attributes
+- ✅ **Memory Efficiency**: Understanding trade-offs between alignment and size
+- ✅ **Hardware Interface**: Importance of byte ordering in hardware programming
+
+### **RISC-V System Programming:**
+- ✅ **Assembly Analysis**: Reading load/store patterns in generated code
+- ✅ **Memory Operations**: Understanding lbu, lw, sw instruction usage
+- ✅ **Data Types**: Knowledge of how different sizes are handled in memory
+- ✅ **Compiler Behavior**: How unions are implemented at assembly level
+
+## 🔗 Next Steps
+
+With endianness and struct packing mastery achieved:
+- **Network Programming**: Handling byte order in network protocols
+- **Binary File Formats**: Reading/writing binary data with correct endianness
+- **Hardware Interface**: Proper handling of multi-byte hardware registers
+- **Cross-Platform Development**: Portable code for different endianness systems
+
+---
+
+## 📝 Technical Notes
+
+> **Union Trick Success**: Your implementation perfectly demonstrates the classic union technique for endianness detection, with assembly code confirming the byte-level access pattern.
+
+> **RISC-V Endianness**: The little-endian behavior is consistent across all RISC-V implementations, making it compatible with x86/ARM little-endian systems.
+
+> **Memory Access Efficiency**: The `lbu` (load byte unsigned) instructions in your assembly show efficient byte-level access for endianness verification.
+
+---
+
+<div align="center">
+
+**🔄 Task 17 Complete - RISC-V Memory Layout Expert! 🔄**
+
+[![Endianness Verified](https://img.shields.io/badge/Endianness-Little%20Endian%20Verified-success.svg)]()
+[![Struct Packing](https://img.shields.io/badge/Struct%20Packing-Expert-brightgreen.svg)]()
+[![Memory Layout](https://img.shields.io/badge/Memory%20Layout-Mastered-blue.svg)]()
+
+</div>
