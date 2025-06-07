@@ -25,7 +25,7 @@ tar -xzf xpack-riscv-none-elf-gcc-14.2.0-3-linux-x64.tar.gz
 #### 3. Add the Toolchain to PATH (Temporarily)
 Added the toolchain binaries to the current session's PATH.
 
-export PATH=$PWD/xpack-riscv-none-elf-gcc-14.2.0-3/bin:$PATH
+'''bash export PATH=$PWD/xpack-riscv-none-elf-gcc-14.2.0-3/bin:$PATH'''
 
 
 #### 4. Check if Binaries Work
