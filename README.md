@@ -3197,3 +3197,412 @@ With bare-metal LED blink mastery achieved:
 
 ---
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# ⚡ Task 13: Interrupt Primer - Machine Timer Interrupt (MTIP)
+
+[![RISC-V](https://img.shields.io/badge/Architecture-RISC--V-blue.svg)](https://riscv.org/)
+[![Interrupts](https://img.shields.io/badge/Feature-Timer%20Interrupts-green.svg)]()
+[![CSR](https://img.shields.io/badge/Hardware-CSR%20Registers-orange.svg)]()
+[![Status](https://img.shields.io/badge/Status-✅%20Complete-success.svg)]()
+
+## 🎯 Objective
+
+Demonstrate how to enable the machine-timer interrupt (MTIP) and write a simple interrupt handler using RISC-V Control and Status Registers (CSR). Implement proper interrupt configuration with mtime, mtimecmp, mie, and mstatus registers, and create a C interrupt handler using `__attribute__((interrupt))`.[1][2]
+
+## 📋 Prerequisites
+
+- ✅ Task 12 completed: Understanding of bare-metal programming and hardware control
+- ✅ RISC-V toolchain with Zicsr extension support
+- ✅ Knowledge of memory-mapped I/O and CSR operations
+- ✅ Understanding of interrupt concepts and timer operations
+
+## 🚀 Step-by-Step Implementation (Working Commands)
+
+### Step 1: Create Timer Interrupt Program
+
+ Create the machine-timer interrupt program
+```bash
+cat << 'EOF' > task13_timer_interrupt.c
+#include <stdint.h>
+
+// Memory-mapped timer registers (QEMU virt machine)
+#define MTIME_BASE 0x0200BFF8
+#define MTIMECMP_BASE 0x02004000
+
+volatile uint64_t *mtime = (volatile uint64_t *)MTIME_BASE;
+volatile uint64_t *mtimecmp = (volatile uint64_t *)MTIMECMP_BASE;
+
+// Global counter for interrupt handling
+volatile uint32_t interrupt_count = 0;
+
+// Timer interrupt handler with interrupt attribute
+void __attribute__((interrupt)) timer_interrupt_handler(void) {
+    // Clear timer interrupt by setting next compare value
+    *mtimecmp = *mtime + 10000000;  // Next interrupt in ~1 second (assuming 10MHz)
+    
+    // Increment interrupt counter
+    interrupt_count++;
+}
+
+// Function to read CSR registers
+static inline uint32_t read_csr_mstatus(void) {
+    uint32_t result;
+    asm volatile ("csrr %0, mstatus" : "=r"(result));
+    return result;
+}
+
+static inline uint32_t read_csr_mie(void) {
+    uint32_t result;
+    asm volatile ("csrr %0, mie" : "=r"(result));
+    return result;
+}
+
+// Function to write CSR registers
+static inline void write_csr_mstatus(uint32_t value) {
+    asm volatile ("csrw mstatus, %0" : : "r"(value));
+}
+
+static inline void write_csr_mie(uint32_t value) {
+    asm volatile ("csrw mie, %0" : : "r"(value));
+}
+
+static inline void write_csr_mtvec(uint32_t value) {
+    asm volatile ("csrw mtvec, %0" : : "r"(value));
+}
+
+void enable_timer_interrupt(void) {
+    // Set initial timer compare value
+    *mtimecmp = *mtime + 10000000;  // First interrupt in ~1 second
+    
+    // Set interrupt vector (direct mode)
+    write_csr_mtvec((uint32_t)timer_interrupt_handler);
+    
+    // Enable machine timer interrupt in mie register
+    uint32_t mie = read_csr_mie();
+    mie |= (1 << 7);  // MTIE bit (Machine Timer Interrupt Enable)
+    write_csr_mie(mie);
+    
+    // Enable global machine interrupts in mstatus
+    uint32_t mstatus = read_csr_mstatus();
+    mstatus |= (1 << 3);  // MIE bit (Machine Interrupt Enable)
+    write_csr_mstatus(mstatus);
+}
+
+void delay(volatile int count) {
+    while(count--) {
+        asm volatile ("nop");
+    }
+}
+
+int main() {
+    // Initialize interrupt system
+    enable_timer_interrupt();
+    
+    uint32_t last_count = 0;
+    
+    while(1) {
+        // Check if interrupt occurred
+        if (interrupt_count != last_count) {
+            last_count = interrupt_count;
+            // In real hardware, this could toggle an LED or print
+            // For demonstration, we just continue
+        }
+        
+        delay(100000);
+        
+        // Break after some interrupts for demonstration
+        if (interrupt_count >= 5) {
+            break;
+        }
+    }
+    
+    return 0;
+}
+EOF
+```
+### Step 2: Create Assembly Startup with Interrupt Support
+Create assembly startup file with interrupt vector setup
+```bash
+cat << 'EOF' > interrupt_start.s
+.section .text.start
+.global _start
+
+_start:
+    # Set up stack pointer
+    lui sp, %hi(_stack_top)
+    addi sp, sp, %lo(_stack_top)
+    
+    # Initialize trap vector
+    la t0, trap_handler
+    csrw mtvec, t0
+    
+    # Call main program
+    call main
+    
+    # Infinite loop (shouldn't reach here)
+1:  j 1b
+
+# Simple trap handler (if needed)
+trap_handler:
+    # Save context
+    addi sp, sp, -64
+    sw ra, 0(sp)
+    sw t0, 4(sp)
+    sw t1, 8(sp)
+    sw t2, 12(sp)
+    sw a0, 16(sp)
+    sw a1, 20(sp)
+    
+    # Call C interrupt handler
+    call timer_interrupt_handler
+    
+    # Restore context
+    lw ra, 0(sp)
+    lw t0, 4(sp)
+    lw t1, 8(sp)
+    lw t2, 12(sp)
+    lw a0, 16(sp)
+    lw a1, 20(sp)
+    addi sp, sp, 64
+    
+    # Return from interrupt
+    mret
+
+.size _start, . - _start
+.size trap_handler, . - trap_handler
+EOF
+```
+### Step 3: Create Linker Script for Interrupts
+Create linker script for interrupt program
+```bash
+cat << 'EOF' > interrupt.ld
+/*
+ * Linker Script for Timer Interrupt - RV32IMC
+ * Places .text at 0x00000000 (Flash/ROM)
+ * Places .data at 0x10000000 (SRAM)
+ */
+
+ENTRY(_start)
+
+MEMORY
+{
+    FLASH (rx)  : ORIGIN = 0x00000000, LENGTH = 256K
+    SRAM  (rwx) : ORIGIN = 0x10000000, LENGTH = 64K
+}
+
+SECTIONS
+{
+    /* Text section in Flash at 0x00000000 */
+    .text 0x00000000 : {
+        *(.text.start)    /* Entry point first */
+        *(.text*)         /* All other text */
+        *(.rodata*)       /* Read-only data */
+    } > FLASH
+
+    /* Data section in SRAM at 0x10000000 */
+    .data 0x10000000 : {
+        _data_start = .;
+        *(.data*)         /* Initialized data */
+        _data_end = .;
+    } > SRAM
+
+    /* BSS section in SRAM */
+    .bss : {
+        _bss_start = .;
+        *(.bss*)          /* Uninitialized data */
+        _bss_end = .;
+    } > SRAM
+
+    /* Stack at end of SRAM */
+    _stack_top = ORIGIN(SRAM) + LENGTH(SRAM);
+}
+EOF
+```
+### Step 4: Compile Timer Interrupt Program
+ Compile the timer interrupt program with CSR support
+```bash
+riscv32-unknown-elf-gcc -march=rv32imac_zicsr -c interrupt_start.s -o interrupt_start.o
+riscv32-unknown-elf-gcc -march=rv32imac_zicsr -c task13_timer_interrupt.c -o task13_timer_interrupt.o
+```
+ Link with custom linker script
+```bash
+riscv32-unknown-elf-ld -T interrupt.ld interrupt_start.o task13_timer_interrupt.o -o task13_timer_interrupt.elf
+```
+### Step 5: Verify Compilation and Analyz
+
+ Verify ELF file properties
+```bash
+file task13_timer_interrupt.elf
+```
+ Check symbol addresses
+```bash
+riscv32-unknown-elf-nm task13_timer_interrupt.elf | grep -E "(interrupt|timer|handler)"
+```
+ View disassembly to see CSR operations
+```bash
+riscv32-unknown-elf-objdump -d task13_timer_interrupt.elf | grep -A 10 -B 5 "csrr\|csrw"
+```
+### Step 6: Create Complete Build Script
+ Create complete working build script for Task 13
+```bash
+cat << 'EOF' > build_timer_interrupt.sh
+#!/bin/bash
+echo "=== Task 13: Timer Interrupt Implementation ==="
+
+# Compile everything with zicsr extension
+echo "1. Compiling timer interrupt program..."
+riscv32-unknown-elf-gcc -march=rv32imac_zicsr -c interrupt_start.s -o interrupt_start.o
+riscv32-unknown-elf-gcc -march=rv32imac_zicsr -c task13_timer_interrupt.c -o task13_timer_interrupt.o
+riscv32-unknown-elf-ld -T interrupt.ld interrupt_start.o task13_timer_interrupt.o -o task13_timer_interrupt.elf
+
+echo "✓ Compilation successful!"
+
+# Verify results
+echo -e "\n2. Verifying timer interrupt program:"
+file task13_timer_interrupt.elf
+
+echo -e "\n3. Checking interrupt-related symbols:"
+riscv32-unknown-elf-nm task13_timer_interrupt.elf | grep -E "(interrupt|timer|handler)"
+
+echo -e "\n4. CSR operations in disassembly:"
+riscv32-unknown-elf-objdump -d task13_timer_interrupt.elf | grep -A 3 -B 1 "csr"
+
+echo -e "\n✓ Timer interrupt program ready!"
+EOF
+
+chmod +x build_timer_interrupt.sh
+./build_timer_interrupt.sh
+```
+### Step 7: Generate Assembly to See CSR Instructions
+ Generate assembly to see CSR operations
+```bash
+riscv32-unknown-elf-gcc -march=rv32imac_zicsr -S task13_timer_interrupt.c
+```
+ Check for CSR instructions in generated assembly
+```bash
+echo "=== CSR Instructions Analysis ==="
+grep -A 3 -B 3 "csr" task13_timer_interrupt.s
+```
+Expected Working Results:
+```bash
+✅ Compilation Success:
+text
+task13_timer_interrupt.elf: ELF 32-bit LSB executable, UCB RISC-V, RVC, soft-float ABI, version 1 (SYSV), statically linked
+✅ Interrupt Features:
+Machine Timer Interrupt: MTIP enable and handling
+
+CSR Operations: mstatus, mie, mtvec, mtimecmp access
+
+Interrupt Handler: C function with __attribute__((interrupt))
+
+Timer Setup: mtimecmp configuration for periodic interrupts
+
+✅ Key Components:
+mtime: Current timer value register (0x0200BFF8)
+
+mtimecmp: Timer compare register (0x02004000)
+
+MTIE bit: Machine Timer Interrupt Enable (bit 7 in mie)
+
+MIE bit: Machine Interrupt Enable (bit 3 in mstatus)
+```
+
+### 📋 **Timer Interrupt System Components:**
+
+#### **Memory-Mapped Timer Registers:**
+- **MTIME**: `0x0200BFF8` - Current timer value (64-bit counter)
+- **MTIMECMP**: `0x02004000` - Timer compare value (triggers interrupt when mtime >= mtimecmp)
+
+#### **CSR Registers Used:**
+- **mstatus**: Machine status register (global interrupt enable)
+- **mie**: Machine interrupt enable register (individual interrupt enables)
+- **mtvec**: Machine trap vector register (interrupt handler address)
+
+#### **Interrupt Handler Features:**
+- **`__attribute__((interrupt))`**: Compiler generates proper interrupt prologue/epilogue
+- **Automatic Context Save**: Registers automatically preserved during interrupt
+- **Timer Reset**: mtimecmp updated to schedule next interrupt
+- **Counter Increment**: Global variable tracks interrupt occurrences
+
+## 📸 Implementation Output
+![Screenshot 2025-06-08 005341](https://github.com/user-attachments/assets/4a99883f-e98e-408a-9298-bbb89d02b040)
+![Screenshot 2025-06-08 005418](https://github.com/user-attachments/assets/6d8d4c2f-a137-4331-a600-822286a30bff)
+![Screenshot 2025-06-08 005440](https://github.com/user-attachments/assets/750e6b2b-a45f-4aad-a5cf-9685fbd34f8c)
+![Screenshot 2025-06-08 005452](https://github.com/user-attachments/assets/dd55bf5a-ad7d-4ead-a4c4-bec1cf9f1dbb)
+
+
+## 🎉 Success Criteria
+
+Task 13 is considered **complete** when:
+- [x] Timer interrupt program created with proper CSR operations
+- [x] Compilation succeeds with Zicsr extension support
+- [x] CSR instructions generated: csrr mstatus, csrw mie, csrw mtvec
+- [x] MTIE bit (bit 7) properly enabled in mie register
+- [x] MIE bit (bit 3) properly enabled in mstatus register
+- [x] Interrupt handler using `__attribute__((interrupt))` implemented
+- [x] Timer compare register (mtimecmp) configuration working
+- [x] Memory-mapped timer registers (mtime/mtimecmp) properly accessed
+
+## 💡 Key Learning Outcomes
+
+### **Interrupt System Mastery:**
+- ✅ **CSR Operations**: Reading and writing Control and Status Registers
+- ✅ **Timer Interrupts**: Machine timer interrupt configuration and handling
+- ✅ **Interrupt Enable**: Proper bit manipulation for MTIE and MIE enables
+- ✅ **Handler Implementation**: C interrupt functions with compiler attributes
+
+### **RISC-V System Programming:**
+- ✅ **Privilege Levels**: Machine mode interrupt handling
+- ✅ **Memory-Mapped Timers**: Direct hardware timer register access
+- ✅ **Interrupt Vectors**: Setting up mtvec for interrupt dispatch
+- ✅ **Context Management**: Automatic register save/restore with interrupt attribute
+
+### **Embedded Systems Development:**
+- ✅ **Real-time Programming**: Timer-driven interrupt-based systems
+- ✅ **Hardware Interface**: Direct CSR and memory-mapped register control
+- ✅ **System Initialization**: Proper interrupt system setup sequence
+- ✅ **Event-driven Programming**: Interrupt-based program flow control
+
+## 🔗 Next Steps
+
+With timer interrupt mastery achieved:
+- **Multiple Interrupt Sources**: Handling external, software, and other machine interrupts
+- **Interrupt Priorities**: Managing multiple concurrent interrupt sources
+- **Real-time Operating Systems**: Foundation for RTOS interrupt handling
+- **Advanced Timer Features**: Periodic timers, one-shot timers, and timer cascading
+
+---
+
+## 📝 Technical Notes
+
+> **CSR Success**: Your implementation perfectly demonstrates RISC-V CSR operations with proper csrr/csrw instructions for interrupt system configuration.
+
+> **Timer Mechanism**: The memory-mapped timer approach with mtime/mtimecmp provides precise timing control for embedded applications.
+
+> **Interrupt Attribute**: The `__attribute__((interrupt))` generates proper interrupt entry/exit code, eliminating manual context save/restore requirements.
+
+---
+
