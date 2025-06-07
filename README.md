@@ -1431,12 +1431,4 @@ With emulation mastery achieved:
 
 ---
 
-<div align="center">
 
-**🖥️ Task 7 Complete - RISC-V Emulation Mastered! 🖥️**
-
-[![QEMU Emulation](https://img.shields.io/badge/QEMU-Emulation%20Success-brightgreen.svg)]()
-[![OpenSBI](https://img.shields.io/badge/OpenSBI-Firmware%20Boot-orange.svg)]()
-[![UART Console](https://img.shields.io/badge/UART-Console%20Output-blue.svg)]()
-
-</div>
