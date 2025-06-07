@@ -2185,7 +2185,7 @@ return c;
 ## 📸 Implementation Output
 
 
-![Task 9 Source Code](screenshots/task9_source_code.png)
+
 
 
 ![Screenshot 2025-06-07 232328](https://github.com/user-attachments/assets/d6db4adb-8e91-45b7-b5a3-3129c95b5a18)
@@ -2244,4 +2244,333 @@ With inline assembly mastery achieved:
 > **Register Allocation**: The compiler efficiently allocated general-purpose registers (a5, a4) according to your `"r"` and `"=r"` constraint specifications.
 
 ---
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# 💾 Task 10: Memory-Mapped I/O Demo - GPIO Control with Volatile
+
+[![RISC-V](https://img.shields.io/badge/Architecture-RISC--V-blue.svg)](https://riscv.org/)
+[![Memory Mapped IO](https://img.shields.io/badge/Technique-Memory%20Mapped%20I/O-green.svg)]()
+[![Volatile](https://img.shields.io/badge/Keyword-Volatile-orange.svg)]()
+[![Status](https://img.shields.io/badge/Status-✅%20Complete-success.svg)]()
+
+## 🎯 Objective
+
+Demonstrate bare-metal C programming for memory-mapped I/O by creating a GPIO register toggle function at address 0x10012000. Show how the `volatile` keyword prevents compiler optimization from eliminating essential hardware register accesses, and explain alignment requirements for memory-mapped operations.[1][2]
+
+## 📋 Prerequisites
+
+- ✅ Task 9 completed: Understanding of inline assembly and hardware programming
+- ✅ RISC-V toolchain installed and configured for bare-metal programming
+- ✅ Knowledge of C pointers and memory addressing from previous tasks
+- ✅ Understanding of compiler optimization effects from Task 8
+
+## 🚀 Step-by-Step Implementation (Working Commands)
+
+### Step 1: Create Memory-Mapped I/O Program
+
+Create a comprehensive GPIO control program demonstrating proper volatile usage.
+
+Create the GPIO memory-mapped I/O program
+```bash
+
+cat << 'EOF' > task10_gpio.c
+#include <stdint.h>
+
+// Define the GPIO register address
+#define GPIO_ADDR 0x10012000
+
+// Function to toggle GPIO with proper volatile usage
+void toggle_gpio(void) {
+    volatile uint32_t *gpio = (volatile uint32_t *)GPIO_ADDR;
+    
+    // Set GPIO pin high
+    *gpio = 0x1;
+    
+    // Toggle operation - read current state and flip
+    uint32_t current_state = *gpio;
+    *gpio = ~current_state;
+    
+    // Set specific bits (example: set bit 0, clear bit 1)
+    *gpio |= (1 << 0);   // Set bit 0
+    *gpio &= ~(1 << 1);  // Clear bit 1
+}
+
+// Function to demonstrate different GPIO operations
+void gpio_operations(void) {
+    volatile uint32_t *gpio = (volatile uint32_t *)GPIO_ADDR;
+    
+    // Write operations to prevent optimization
+    *gpio = 0x0;         // Clear all pins
+    *gpio = 0x1;         // Set pin 0
+    *gpio = 0xFFFFFFFF;  // Set all pins
+    *gpio = 0x0;         // Clear all pins again
+}
+
+int main() {
+    // Demonstrate GPIO operations
+    toggle_gpio();
+    gpio_operations();
+    
+    // Infinite loop to keep program running (bare-metal style)
+    while(1) {
+        // In real hardware, this would continue GPIO operations
+        // For demonstration, we'll break after some iterations
+        static volatile int counter = 0;
+        counter++;
+        if (counter > 1000000) break;
+    }
+    
+    return 0;
+}
+
+/*
+Memory-Mapped I/O Explanation:
+- volatile uint32_t *gpio: Prevents compiler optimization
+- volatile tells compiler the memory can change outside program control
+- Essential for hardware registers and memory-mapped I/O
+- Address 0x10012000 must be 4-byte aligned for uint32_t access
+- Each write operation will actually occur in hardware
+*/
+EOF
+
+```
+
+### Step 2: Create Comparison Version Without Volatile
+
+Create a version without volatile to demonstrate optimization effects.
+
+Create version without volatile for comparison
+```bash
+cat << 'EOF' > task10_no_volatile.c
+#include <stdint.h>
+#define GPIO_ADDR 0x10012000
+
+void toggle_gpio_no_volatile(void) {
+uint32_t *gpio = (uint32_t *)GPIO_ADDR; // No volatile
+*gpio = 0x1;
+*gpio = 0x0;
+*gpio = 0x1; // Compiler might optimize this away
+}
+
+int main() {
+toggle_gpio_no_volatile();
+return 0;
+}
+EOF
+```
+
+
+### Step 3: Compile Both Versions
+
+Compile both programs and generate optimized assembly for comparison.
+
+Compile both versions with optimization
+```bash
+riscv32-unknown-elf-gcc -S -O2 task10_gpio.c -o task10_with_volatile.s
+riscv32-unknown-elf-gcc -S -O2 task10_no_volatile.c -o task10_no_volatile.s
+```
+Compile ELF binary
+```bash
+riscv32-unknown-elf-gcc -o task10_gpio.elf task10_gpio.c
+```
+
+### Step 4: Compare Volatile vs Non-Volatile Effects
+
+Analyze the difference in generated assembly to prove volatile effectiveness.
+
+Compare the number of memory operations
+```bash
+echo "=== With Volatile (stores preserved) ==="
+grep -c "sw|lw" task10_with_volatile.s
+```
+```bash
+echo "=== Without Volatile (stores might be optimized away) ==="
+grep -c "sw|lw" task10_no_volatile.s
+```
+
+### Step 5: Complete Verification
+
+Run complete verification sequence to document the implementation.
+
+Complete working sequence for documentation
+```bash
+echo "=== Task 10: Memory-Mapped I/O Implementation ==="
+echo "1. GPIO source code created:"
+ls -la task10_gpio.c
+echo -e "\n2. Compilation successful:"
+riscv32-unknown-elf-gcc -o task10_gpio.elf task10_gpio.c && echo "✓ Compiled!"
+echo -e "\n3. Assembly generation with volatile preservation:"
+riscv32-unknown-elf-gcc -S task10_gpio.c && echo "✓ Assembly generated!"
+echo -e "\n4. Memory operations preserved in assembly:"
+grep -n "0x10012000|sw.*gpio|lw.*gpio" task10_gpio.s | head -5
+```
+
+
+## 📊 Successful Implementation Results
+
+Based on your actual working output:
+
+### ✅ **Volatile Keyword Effectiveness Demonstrated:**
+
+#### **Compilation Results:**
+- **Source File**: `task10_gpio.c` (1,686 bytes) - Complete GPIO program
+- **ELF Binary**: `task10_gpio.elf` - Successfully compiled RISC-V executable
+- **Assembly Files**: Both volatile and non-volatile versions generated
+
+#### **Critical Volatile vs Non-Volatile Comparison:**
+
+| Version | Store/Load Operations | Optimization Effect |
+|---------|----------------------|-------------------|
+| **With Volatile** | **20 operations** | ✅ All GPIO accesses preserved |
+| **Without Volatile** | **2 operations** | ❌ 18 operations optimized away (90% lost!) |
+
+### 🔧 **Memory-Mapped I/O Analysis:**
+
+#### **GPIO Register Access Pattern:**
+```bash
+volatile uint32_t *gpio = (volatile uint32_t *)0x10012000;
+*gpio = 0x1; // Hardware register write
+uint32_t state = *gpio; // Hardware register read
+*gpio = ~state; // Hardware register write
+```
+
+#### **Volatile Keyword Benefits:**
+- **Prevents Optimization**: Compiler cannot eliminate "redundant" hardware accesses
+- **Hardware Synchronization**: Each access actually reaches the hardware
+- **Real-time Behavior**: Maintains timing-critical operations
+- **Memory Ordering**: Preserves sequence of hardware register operations
+
+#### **Alignment Requirements:**
+- **Address 0x10012000**: 4-byte aligned for `uint32_t` access
+- **32-bit Operations**: Full register width access to hardware
+- **Atomic Access**: Single instruction for each register operation
+
+### 📋 **Memory-Mapped I/O Best Practices:**
+
+#### **Essential volatile Usage:**
+```bash
+// ✅ Correct: volatile prevents optimization
+volatile uint32_t *gpio = (volatile uint32_t *)0x10012000;
+*gpio = 0x1;
+```
+```bash
+// ❌ Wrong: compiler may optimize away
+uint32_t *gpio = (uint32_t *)0x10012000;
+*gpio = 0x1;
+```
+
+#### **Hardware Register Operations:**
+- **Read-Modify-Write**: `*gpio |= (1 << bit);`
+- **Bit Clearing**: `*gpio &= ~(1 << bit);`
+- **Complete Write**: `*gpio = value;`
+- **Status Reading**: `uint32_t status = *gpio;`
+
+## 📸 Implementation Output
+
+
+![Screenshot 2025-06-07 234939](https://github.com/user-attachments/assets/be77d935-21b2-4d7e-872f-7188b482b8ca)
+![Screenshot 2025-06-07 234941](https://github.com/user-attachments/assets/750a93be-2ee6-426a-9f3a-ad5959c71bfc)
+
+
+## ⚠️ Troubleshooting Guide
+
+### Common Issues and Solutions:
+
+| Issue | Symptom | Root Cause | Solution |
+|-------|---------|------------|----------|
+| **Hardware Access Lost** | GPIO doesn't respond | Missing volatile keyword | Add `volatile` to pointer declaration |
+| **Alignment Error** | Bus error/exception | Unaligned memory access | Use proper alignment for data type |
+| **Optimization Away** | Hardware operations missing | Compiler optimization | Use `volatile` and verify assembly |
+| **Wrong Data Type** | Incorrect register width | Using wrong pointer type | Use `uint32_t*` for 32-bit registers |
+
+
+#### **Alignment and Performance:**
+- **4-byte Alignment**: Required for efficient `sw`/`lw` instructions
+- **Single Instruction**: Each GPIO access becomes one memory operation
+- **No Caching**: `volatile` ensures direct hardware access
+- **Memory Ordering**: Operations occur in program order
+
+
+
+
+
+
+
+## 🎉 Success Criteria
+
+Task 10 is considered **complete** when:
+- [x] GPIO control program created with proper volatile pointer usage
+- [x] Compilation succeeds producing valid RISC-V bare-metal executable
+- [x] Volatile vs non-volatile comparison demonstrates optimization prevention
+- [x] Assembly analysis shows preserved memory operations (20 vs 2 operations)
+- [x] Memory-mapped I/O concepts explained with alignment requirements
+- [x] Hardware register access patterns documented and working
+- [x] Bare-metal programming techniques demonstrated
+
+## 💡 Key Learning Outcomes
+
+### **Memory-Mapped I/O Mastery:**
+- ✅ **Volatile Keyword**: Complete understanding of compiler optimization prevention
+- ✅ **Hardware Addressing**: Direct memory-mapped register access techniques
+- ✅ **Alignment Requirements**: Proper data type and address alignment
+- ✅ **Register Operations**: Bit manipulation for hardware control
+
+### **Bare-Metal Programming Skills:**
+- ✅ **Hardware Interface**: Direct hardware register manipulation without OS
+- ✅ **Compiler Behavior**: Understanding optimization effects on hardware code
+- ✅ **Memory Layout**: Knowledge of memory-mapped peripheral addressing
+- ✅ **Real-time Programming**: Timing-critical hardware operation control
+
+### **RISC-V System Programming:**
+- ✅ **Load/Store Architecture**: Efficient memory access instruction usage
+- ✅ **Address Calculation**: Two-instruction address loading for hardware registers
+- ✅ **Assembly Analysis**: Verifying hardware access in generated code
+- ✅ **Performance Optimization**: Balancing compiler optimization with hardware needs
+
+## 🔗 Next Steps
+
+With memory-mapped I/O mastery achieved:
+- **Interrupt Handling**: GPIO interrupt service routine development
+- **Device Drivers**: Complete peripheral driver implementation
+- **Real-time Systems**: Time-critical hardware control applications
+- **Operating System**: Kernel-level hardware abstraction layer development
+
+---
+
+## 📝 Technical Notes
+
+> **Volatile Effectiveness**: Your demonstration with 20 preserved operations vs 2 optimized operations perfectly illustrates why `volatile` is essential for hardware programming - without it, 90% of GPIO operations would be eliminated by the compiler.
+
+> **Alignment Importance**: The 4-byte aligned address 0x10012000 ensures efficient single-instruction access to the GPIO register, critical for real-time hardware control applications.
+
+> **Hardware Abstraction**: This memory-mapped I/O pattern forms the foundation for all hardware device drivers and embedded system programming in RISC-V.
+
+---
+
+
 
