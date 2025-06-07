@@ -255,6 +255,13 @@ riscv32-unknown-elf-gcc -march=rv32imc -mabi=ilp32 -o hello.elf hello.c
 # ❌ AVOID - Explicit ISA flags incompatible with your toolchain:
 riscv32-unknown-elf-gcc -march=rv32i -mabi=ilp32 -o hello.elf hello.c
 ```
+
+
+#Implementation Output:
+![Screenshot 2025-06-07 211758](https://github.com/user-attachments/assets/a2dddd9e-d004-4e6a-8413-0cfec8a6f5b3)
+![Screenshot 2025-06-07 211812](https://github.com/user-attachments/assets/7b1303ce-80ea-41da-a41e-b3feab5f0a3c)
+
+
 ✅ Success Criteria Met:
  Compilation completes without errors
 
@@ -263,6 +270,35 @@ riscv32-unknown-elf-gcc -march=rv32i -mabi=ilp32 -o hello.elf hello.c
  file command shows "UCB RISC-V, RVC"
 
  Binary ready for Task 3 assembly analysis
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
 
 # ⚙️ Task 3: From C to Assembly - Generate and Analyze Assembly Code
 
@@ -273,7 +309,9 @@ riscv32-unknown-elf-gcc -march=rv32i -mabi=ilp32 -o hello.elf hello.c
 
 ## 🎯 Objective
 
-Generate assembly code from the C "Hello, RISC-V" program and perform detailed analysis of the function prologue and epilogue to understand RISC-V calling conventions, stack frame management, and instruction encoding patterns.[2][3]
+Generate assembly code from the C "Hello, RISC-V" program and perform detailed analysis of the function prologue and epilogue to understand RISC-V calling conventions, stack frame management, and instruction encoding patterns.
+
+
 
 ## 📋 Prerequisites
 
@@ -407,8 +445,7 @@ main:
 
 
 ## 📸 Implementation Output
-![Screenshot 2025-06-07 211758](https://github.com/user-attachments/assets/a2dddd9e-d004-4e6a-8413-0cfec8a6f5b3)
-![Screenshot 2025-06-07 211812](https://github.com/user-attachments/assets/7b1303ce-80ea-41da-a41e-b3feab5f0a3c)
+
 
 
 
@@ -479,6 +516,34 @@ With assembly analysis complete, proceed to:
 - **Task 5**: RISC-V ABI and register convention reference guide
 
 ---
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # 🔍 Task 4: Hex Dump & Disassembly Analysis
 
@@ -703,6 +768,31 @@ With binary analysis complete, proceed to:
 - **Advanced Topics**: Debugging with GDB, performance analysis, and optimization
 
 ---
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # 📚 Task 5: RISC-V ABI & Register Cheat-Sheet
 
