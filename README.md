@@ -1101,6 +1101,7 @@ At (gdb) prompt - disassemble main function
 disassemble main
 ```
 **Working Output Analysis:**
+
 Dump of assembler code for function main:
 0x00010162 <+0>: addi sp,sp,-16 # Prologue: Stack allocation
 0x00010164 <+2>: sw ra,12(sp) # Save return address
