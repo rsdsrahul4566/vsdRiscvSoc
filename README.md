@@ -2493,8 +2493,8 @@ uint32_t *gpio = (uint32_t *)0x10012000;
 ## 📸 Implementation Output
 
 
-![Screenshot 2025-06-07 234939](https://github.com/user-attachments/assets/be77d935-21b2-4d7e-872f-7188b482b8ca)
-![Screenshot 2025-06-07 234941](https://github.com/user-attachments/assets/750a93be-2ee6-426a-9f3a-ad5959c71bfc)
+![Screenshot 2025-06-07 234925](https://github.com/user-attachments/assets/96834081-ab51-47d7-b145-826b342bd324)
+![Screenshot 2025-06-07 234939](https://github.com/user-attachments/assets/83474229-dbed-4127-acd7-55ae61667824)
 
 
 ## ⚠️ Troubleshooting Guide
@@ -2800,8 +2800,10 @@ chmod +x build_linker_test.sh
 - **0xE0000000**: System control (ARM Cortex-M standard)
 
 ## 📸 Implementation Output
-![Screenshot 2025-06-08 002017](https://github.com/user-attachments/assets/2470466f-64c3-417d-8ab8-bc2d8afe0567)
-![Screenshot 2025-06-08 002017 (2)](https://github.com/user-attachments/assets/6b8945b1-ace2-4d1e-906b-8012f247d64a)
+![Screenshot 2025-06-08 002002](https://github.com/user-attachments/assets/75e6ee56-3f09-4b39-8760-1f5020769d6a)
+![Screenshot 2025-06-08 002017 (2)](https://github.com/user-attachments/assets/5e3c5e6a-22b0-4e6e-987e-2f479e89d14d)
+
+
 
 
 
@@ -3135,9 +3137,11 @@ riscv32-unknown-elf-nm task12_led_blink.elf
 - **Real-time Operation**: Deterministic timing and response
 
 ## 📸 Implementation Output
-![Screenshot 2025-06-08 003204](https://github.com/user-attachments/assets/462ffdc0-3ada-47f4-9f08-90cdd051b9fd)
-![Screenshot 2025-06-08 003212](https://github.com/user-attachments/assets/3742e75f-fe54-41b2-bdd2-c644ccf070e9)
-![Screenshot 2025-06-08 003214](https://github.com/user-attachments/assets/1ece55a5-437c-42b1-8658-f8a030c72657)
+![Screenshot 2025-06-08 003147](https://github.com/user-attachments/assets/d51574c5-ba01-466f-aea3-327f11ba28c7)
+![Screenshot 2025-06-08 003204](https://github.com/user-attachments/assets/8ba51331-4b2c-4399-9d30-c74ac4baa7c3)
+![Screenshot 2025-06-08 003214](https://github.com/user-attachments/assets/427607b1-74fc-4777-8e50-55b79118ff9f)
+
+
 
 
 
