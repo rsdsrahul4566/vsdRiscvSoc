@@ -2893,7 +2893,303 @@ With linker script mastery achieved:
 
 
 
+# 💡 Task 12: Bare-Metal LED Blink - GPIO Control with Memory-Mapped I/O
+
+[![RISC-V](https://img.shields.io/badge/Architecture-RISC--V-blue.svg)](https://riscv.org/)
+[![Bare Metal](https://img.shields.io/badge/Programming-Bare%20Metal-green.svg)]()
+[![GPIO](https://img.shields.io/badge/Hardware-GPIO%20Control-orange.svg)]()
+[![Status](https://img.shields.io/badge/Status-✅%20Complete-success.svg)]()
+
+## 🎯 Objective
+
+Create a bare-metal LED blink program using memory-mapped I/O to control GPIO registers at 0x10012000. Demonstrate direct hardware register manipulation, volatile keyword usage, and proper embedded programming techniques for LED control without operating system dependency.[4][5]
+
+## 📋 Prerequisites
+
+- ✅ Task 11 completed: Understanding of linker scripts and memory layout
+- ✅ RISC-V toolchain installed and configured
+- ✅ Knowledge of memory-mapped I/O from Task 10
+- ✅ Understanding of volatile keyword and hardware programming
+
+## 🚀 Step-by-Step Implementation (Working Commands)
+
+### Step 1: Create LED Blink Program
+
+Create the bare-metal LED blink program
+```bash
+cat << 'EOF' > task12_led_blink.c
+#include <stdint.h>
+
+#define GPIO_BASE 0x10012000
+#define GPIO_OUTPUT_REG (*(volatile uint32_t )(GPIO_BASE + 0x00))
+#define GPIO_DIRECTION_REG ((volatile uint32_t *)(GPIO_BASE + 0x04))
+
+void delay(volatile int count) {
+while(count-
+) { asm volat
+l
+(
+
+int main() {
+// Set GPIO pin 0 as ou
+put GPIO_DIRECTION_REG
+
+
+while(1) {
+    // Toggle GPIO pin 0
+    GPIO_OUTPUT_REG ^= 0x1;
+    delay(100000);
+}
+return 0;
+}
+EOF
+```
+
+### Step 2: Create Assembly Startup Code
+
+Create assembly startup file for LED blink
+```bash
+cat << 'EOF' > led_start.s
+.section .text.start
+.global _start
+
+_start:
+# Set up stack pointer
+lui sp, %hi(_stack_top)
+addi sp, sp, %lo(_stack_top)
+
+
+# Call main program
+call main
+
+# Infinite loop (shouldn't reach here)
+1: j 1b
+
+.size _start, . - _start
+EOF
+```
+
+### Step 3: Create Linker Script
+
+Create linker script for LED blink program
+```bash
+cat << 'EOF' > led_blink.ld
+/*
+
+Linker Script for LED Blink - RV32IMC
+
+Places .text at 0x00000000 (Flash/ROM)
+
+Places .data at 0x10000000 (SRAM)
+*/
+
+ENTRY(_start)
+
+MEMORY
+{
+FLASH (rx) : ORIGIN = 0x00000000, LENGTH = 256K
+SRAM (rwx) : ORIGIN = 0x10000000, LENGTH = 64K
+}
+
+SECTIONS
+{
+/* Text section in Flash at 0x00000000 */
+.text 0x00000000 : {
+(.text.start) / Entry point first /
+(.text) / All other text /
+(.rodata) / Read-only data */
+} > FLASH
+
+
+/* Data section in SRAM at 0x10000000 */
+.data 0x10000000 : {
+    _data_start = .;
+    *(.data*)         /* Initialized data */
+    _data_end = .;
+} > SRAM
+
+/* BSS section in SRAM */
+.bss : {
+    _bss_start = .;
+    *(.bss*)          /* Uninitialized data */
+    _bss_end = .;
+} > SRAM
+
+/* Stack at end of SRAM */
+_stack_top = ORIGIN(SRAM) + LENGTH(SRAM);
+}
+EOF
+```
+
+### Step 4: Compile LED Blink Program
+
+Compile the LED blink program
+```bash
+riscv32-unknown-elf-gcc -c led_start.s -o led_start.o
+riscv32-unknown-elf-gcc -c task12_led_blink.c -o task12_led_blink.o
+```
+Link with custom linker script
+```bash
+riscv32-unknown-elf-ld -T led_blink.ld led_start.o task12_led_blink.o -o task12_led_blink.elf
+```
+
+### Step 5: Create Complete Build Script
+
+Create complete working build script for Task 12
+```bash
+cat << 'EOF' > build_led_blink.sh
+#!/bin/bash
+echo "=== Task 12: LED Blink Implementation ==="
+
+Compile everything
+echo "1. Compiling LED blink program..."
+riscv32-unknown-elf-gcc -c led_start.s -o led_start.o
+riscv32-unknown-elf-gcc -c task12_led_blink.c -o task12_led_blink.o
+riscv32-unknown-elf-ld -T led_blink.ld led_start.o task12_led_blink.o -o task12_led_blink.elf
+
+echo "✓ Compilation successful!"
+
+Verify results
+echo -e "\n2. Verifying LED blink program:"
+file task12_led_blink.elf
+
+echo -e "\n3. Checking memory layout:"
+riscv32-unknown-elf-objdump -h task12_led_blink.elf | grep -E "(text|data)"
+
+echo -e "\n4. GPIO register usage in disassembly:"
+riscv32-unknown-elf-objdump -d task12_led_blink.elf | grep -A 5 -B 5 "0x10012000"
+
+echo -e "\n✓ LED blink program ready!"
+EOF
+
+chmod +x build_led_blink.sh
+./build_led_blink.sh
+```
+
+
+### Step 6: Analyze GPIO Operations
+
+Check GPIO register operations in assembly
+```bash
+echo "=== GPIO Register Analysis ==="
+riscv32-unknown-elf-objdump -d task12_led_blink.elf | grep -A 15 "<main>:"
+```
+Check symbol table
+```bash
+riscv32-unknown-elf-nm task12_led_blink.elf
+```
+
+
+#### **Symbol Table Analysis:**
+| Symbol | Address | Location | Purpose |
+|--------|---------|----------|---------|
+| `_start` | `0x00000000` | Flash entry point | Program startup |
+| `delay` | `0x0000000c` | Flash function | Timing control |
+| `main` | `0x00000036` | Flash function | LED control logic |
+| `_stack_top` | `0x10010000` | SRAM end | Stack pointer |
+
+### 🔧 **GPIO Register Operations Analysis:**
+
+#### **GPIO Direction Setting (Pin Configuration):**
+```bash
+3e: 100127b7 lui a5,0x10012
+42: 0791 addi a5,a5,4 # 10012004 <GPIO_DIRECTION_REG>
+44: 4398 lw a4,0(a5) # Read current direction
+4c: 00176713 ori a4,a4,1 # Set bit 0 (output)
+50: c398 sw a4,0(a5) # Write back direction
+```
+
+#### **GPIO Output Toggling (LED Control):**
+```bash
+52: 100127b7 lui a5,0x10012
+56: 4398 lw a4,0(a5) # Read current output
+58: 100127b7 lui a5,0x10012
+5c: 00174713 xori a4,a4,1 # Toggle bit 0 (XOR)
+60: c398 sw a4,0(a5) # Write toggled value
+```
+
+### 📋 **Hardware Register Mapping:**
+
+#### **GPIO Register Layout:**
+- **GPIO_BASE**: `0x10012000` (Memory-mapped GPIO controller)
+- **GPIO_OUTPUT_REG**: `0x10012000` (GPIO_BASE + 0x00) - Controls pin output state
+- **GPIO_DIRECTION_REG**: `0x10012004` (GPIO_BASE + 0x04) - Controls pin direction (input/output)
+
+#### **LED Blink Algorithm:**
+1. **Initialization**: Set GPIO pin 0 as output using direction register
+2. **Main Loop**: Infinite loop with LED toggle and delay
+3. **Toggle Operation**: XOR output register bit 0 to alternate LED state
+4. **Timing Control**: Delay function with configurable count for visible blinking
+
+### 🎯 **Bare-Metal Programming Features:**
+
+#### **Memory-Mapped I/O:**
+- **Direct Register Access**: No abstraction layers or drivers needed
+- **Volatile Keyword**: Prevents compiler optimization of hardware operations
+- **Immediate Response**: Hardware operations occur without OS overhead
+
+#### **Embedded System Characteristics:**
+- **No Operating System**: Program runs directly on hardware
+- **Custom Memory Layout**: Flash for code, SRAM for stack/data
+- **Hardware Control**: Direct manipulation of GPIO peripherals
+- **Real-time Operation**: Deterministic timing and response
+
+## 📸 Implementation Output
+![Screenshot 2025-06-08 003204](https://github.com/user-attachments/assets/462ffdc0-3ada-47f4-9f08-90cdd051b9fd)
+![Screenshot 2025-06-08 003212](https://github.com/user-attachments/assets/3742e75f-fe54-41b2-bdd2-c644ccf070e9)
+![Screenshot 2025-06-08 003214](https://github.com/user-attachments/assets/1ece55a5-437c-42b1-8658-f8a030c72657)
 
 
 
+## 🎉 Success Criteria
+
+Task 12 is considered **complete** when:
+- [x] LED blink program created with proper GPIO register control
+- [x] Compilation succeeds producing valid RISC-V bare-metal executable
+- [x] GPIO direction register properly configured for output (0x10012004)
+- [x] GPIO output register properly toggled for LED control (0x10012000)
+- [x] Volatile keyword prevents compiler optimization of hardware registers
+- [x] Delay function provides timing control with inline assembly
+- [x] Infinite loop structure maintains continuous LED blinking
+- [x] Memory layout follows embedded system conventions (Flash/SRAM)
+
+## 💡 Key Learning Outcomes
+
+### **Bare-Metal Programming Mastery:**
+- ✅ **Hardware Register Control**: Direct manipulation of GPIO registers without drivers
+- ✅ **Memory-Mapped I/O**: Understanding of peripheral register addressing
+- ✅ **Volatile Usage**: Preventing compiler optimization for hardware operations
+- ✅ **Timing Control**: Creating delays for visible hardware effects
+
+### **Embedded Systems Development:**
+- ✅ **No OS Dependency**: Programming hardware without operating system
+- ✅ **Custom Memory Layout**: Using linker scripts for embedded applications
+- ✅ **Hardware Abstraction**: Creating simple hardware interface layers
+- ✅ **Real-time Behavior**: Deterministic program execution on hardware
+
+### **RISC-V Hardware Programming:**
+- ✅ **GPIO Control**: Pin direction and output state manipulation
+- ✅ **Assembly Analysis**: Understanding generated code for hardware operations
+- ✅ **Register Operations**: Read-modify-write patterns for hardware control
+- ✅ **System Integration**: Combining startup code, main logic, and hardware interface
+
+## 🔗 Next Steps
+
+With bare-metal LED blink mastery achieved:
+- **Multiple GPIO Control**: Controlling multiple LEDs and reading input switches
+- **Interrupt Handling**: GPIO interrupt-driven programming
+- **Timer-based Operations**: Hardware timer integration for precise timing
+- **Communication Protocols**: UART, SPI, I2C hardware interface development
+
+---
+
+## 📝 Technical Notes
+
+> **GPIO Register Success**: Your implementation perfectly demonstrates memory-mapped I/O with proper direction setting (0x10012004) and output control (0x10012000), showing professional embedded programming techniques.
+
+> **Volatile Effectiveness**: The compiler generated proper load-modify-store sequences for all GPIO operations, confirming that the volatile keyword successfully prevented optimization.
+
+> **Bare-Metal Achievement**: This program runs entirely without operating system support, demonstrating complete hardware control through direct register manipulation.
+
+---
 
