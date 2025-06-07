@@ -107,8 +107,9 @@ Upon successful completion, you should see output similar to:
 - **ISA Support**: `rv32i2p1_m2p0_a2p1_c2p0` (RV32IMAC)
 
 ## 📸 Implementation Output
+![Screenshot 2025-06-07 211436](https://github.com/user-attachments/assets/7c5734d8-ea76-4e30-9940-532910074e1a)
+![Screenshot 2025-06-07 211446](https://github.com/user-attachments/assets/f69d6fdc-2d29-4c3f-8b94-d961fd39b9b7)
 
-![Task 1 Toolchain Verification](screenshots/task1_toolchain_verification.png)
 
 *Screenshot demonstrating successful RISC-V toolchain installation with version verification of gcc, objdump, and gdb binaries in WSL environment.*
 
@@ -122,6 +123,36 @@ Upon successful completion, you should see output similar to:
 | Permission denied | Insufficient permissions | Use `sudo` for operations in `/opt/riscv` |
 | Multiple PATH entries | Repeated exports in `.bashrc` | Clean up `.bashrc` manually |
 | Extraction errors | Corrupted download | Re-download the toolchain archive |
+
+---
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # 🏗️ Task 2: Cross-Compile "Hello, RISC-V"
 
@@ -376,8 +407,10 @@ main:
 
 
 ## 📸 Implementation Output
+![Screenshot 2025-06-07 211758](https://github.com/user-attachments/assets/a2dddd9e-d004-4e6a-8413-0cfec8a6f5b3)
+![Screenshot 2025-06-07 211812](https://github.com/user-attachments/assets/7b1303ce-80ea-41da-a41e-b3feab5f0a3c)
 
-![Task 3 Assembly Generation](screenshots/task3_assembly_generation.png)
+
 
 *Screenshot demonstrating successful assembly code generation with complete prologue/epilogue analysis and line-numbered output for detailed examination.*
 
