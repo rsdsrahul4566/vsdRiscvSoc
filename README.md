@@ -950,8 +950,8 @@ grep "a0" hello.s
 | **Temporary** | t0-t6 (x5-x7, x28-x31) | Available for use, a5 used temporarily | ✅ Perfect |
 
 ## 📸 Implementation Output
+![Screenshot 2025-06-07 193252](https://github.com/user-attachments/assets/ffb2f9c4-b386-4a09-9fbf-e7b6b9d4a2dd)
 
-![Task 5 ABI Reference](screenshots/screenshot_abi_reference.png)
 
 *Screenshot demonstrating complete RISC-V ABI compliance verification with register usage analysis and comprehensive reference documentation.*
 
