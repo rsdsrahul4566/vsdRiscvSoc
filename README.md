@@ -1225,3 +1225,187 @@ riscv32-unknown-elf-gdb hello.elf
 (gdb) info symbol 0x10170
 (gdb) quit
 ```
+
+
+
+
+
+# 🖥️ Task 7: Running Under an Emulator - RISC-V QEMU Emulation
+
+[![RISC-V](https://img.shields.io/badge/Architecture-RISC--V-blue.svg)](https://riscv.org/)
+[![Emulator](https://img.shields.io/badge/Emulator-QEMU%20%7C%20Spike-green.svg)]()
+[![OpenSBI](https://img.shields.io/badge/Firmware-OpenSBI%20v1.2-orange.svg)]()
+[![Status](https://img.shields.io/badge/Status-✅%20Complete-success.svg)]()
+
+## 🎯 Objective
+
+Run the bare-metal RISC-V ELF binary under an emulator (QEMU or Spike) to simulate hardware execution and demonstrate UART console output, verifying that cross-compiled programs can execute properly in a virtual RISC-V environment.[1][4]
+
+## 📋 Prerequisites
+
+- ✅ Task 6 completed: GDB debugging knowledge achieved
+- ✅ `hello.elf` binary from Task 2 available in working directory
+- ✅ WSL environment with RISC-V toolchain installed
+- ✅ Understanding of bare-metal program execution concepts
+
+## 🚀 Step-by-Step Implementation (Working Commands)
+
+### Step 1: Verify Emulator Environment
+
+Check available RISC-V emulators in your WSL system.
+
+Check QEMU RISC-V availability
+```bash
+which qemu-system-riscv32
+qemu-system-riscv32 --version
+```
+Check Spike emulator availability
+```bash
+which spike
+spike --help
+```
+Verify your target binary
+```bash
+ls -la hello.elf
+file hello.elf
+```
+
+### Step 2: Install Required Emulation Components
+
+Install QEMU and necessary firmware components for RISC-V emulation.
+
+Update package repositories
+```bash
+sudo apt update
+```
+Install QEMU with RISC-V support
+```bash
+sudo apt install qemu-system-misc
+```
+Install OpenSBI firmware (If not available in  system)
+```bash
+sudo apt install opensbi
+```
+
+### Step 3: Download Required OpenSBI Firmware
+
+Download the specific firmware file that QEMU expects for RISC-V 32-bit emulation.
+
+Download OpenSBI firmware for QEMU
+```bash
+curl -LO https://github.com/qemu/qemu/raw/v8.0.4/pc-bios/opensbi-riscv32-generic-fw_dynamic.bin
+```
+Verify firmware download
+```bash
+ls -la opensbi-riscv32-generic-fw_dynamic.bin
+```
+
+### Step 4: Run ELF Binary with QEMU Emulator (Primary Method)
+
+Execute your RISC-V binary using QEMU with virtual RISC-V hardware.
+
+Run hello.elf with QEMU using virtual machine
+```bash
+qemu-system-riscv32 -nographic -machine virt -kernel hello.elf
+```
+
+**Working Command Output:**
+OpenSBI v1.2
+   ____                    _____ ____ _____
+  / __ \                  / ____|  _ \_   _|
+ | |  | |_ __   ___ _ __ | (___ | |_) || |
+ | |  | | '_ \ / _ \ '_ \ \___ \|  _ < | |
+ | |__| | |_) |  __/ | | |____) | |_) || |_
+  \____/| .__/ \___|_| |_|_____/|____/_____|
+        | |
+        |_|
+
+Platform Name : riscv-virtio,qemu
+Platform Features : medeleg
+Platform HART Count : 1
+Platform Console Device : uart8250
+Firmware Base : 0x80000000
+Boot HART ISA : rv32imafdch
+Domain0 Next Address : 0x00010000
+
+Hello, RISC-V!
+
+
+### Step 5: Alternative QEMU Commands (If Needed)
+
+Try different QEMU machine configurations if the primary method has issues.
+
+Alternative 1: SiFive E machine
+```bash
+qemu-system-riscv32 -nographic -machine sifive_e -kernel hello.elf
+```
+Alternative 2: Explicit BIOS specification
+```bash
+qemu-system-riscv32 -nographic -machine virt -bios opensbi-riscv32-generic-fw_dynamic.bin -kernel hello.elf
+```
+Alternative 3: Simple bare metal
+```bash
+qemu-system-riscv32 -nographic -kernel hello.elf
+```
+### Exit QEMU: Press Ctrl+A, then X
+
+
+## 🎉 Success Criteria
+
+Task 7 is considered **complete** when:
+- [x] QEMU successfully loads and boots OpenSBI firmware
+- [x] Virtual RISC-V platform initializes with uart8250 console
+- [x] Your `hello.elf` program executes after firmware boot
+- [x] "Hello, RISC-V!" output appears in terminal via UART
+- [x] Emulator exits cleanly after program completion
+- [x] Alternative emulation methods (Spike) tested if available
+
+## 💡 Key Learning Outcomes
+
+### **Emulation Technology Mastery:**
+- ✅ **Virtual Hardware**: Understanding of QEMU RISC-V virtual machine architecture
+- ✅ **Firmware Boot**: OpenSBI bootloader functionality and initialization sequence
+- ✅ **Console I/O**: UART-based serial communication in embedded systems
+- ✅ **Memory Management**: Virtual memory layout and program loading
+
+### **Bare-Metal Development Skills:**
+- ✅ **Hardware Abstraction**: Running programs without operating system
+- ✅ **Boot Sequence**: Understanding firmware-to-application handoff
+- ✅ **Cross-Platform**: Executing RISC-V code on x86_64 host system
+- ✅ **Development Workflow**: Complete bare-metal development cycle
+
+### **System Integration:**
+- ✅ **Emulator Configuration**: QEMU machine types and device configuration
+- ✅ **Firmware Integration**: OpenSBI and application interaction
+- ✅ **Console Redirection**: Terminal-based output from virtual hardware
+- ✅ **Debug Capabilities**: Emulation-based development and testing
+
+## 🔗 Next Steps
+
+With emulation mastery achieved:
+- **Hardware Deployment**: Running on actual RISC-V development boards
+- **Advanced Bare-Metal**: Interrupt handling and hardware peripheral control
+- **Operating System**: Kernel development and system programming
+- **Performance Analysis**: Emulation vs. real hardware comparison
+
+---
+
+## 📝 Technical Notes
+
+> **OpenSBI Integration**: The OpenSBI firmware provides a standardized interface between firmware and applications, enabling consistent behavior across different RISC-V implementations.
+
+> **Virtual Hardware Benefits**: QEMU emulation allows complete RISC-V development without physical hardware, providing identical behavior to real RISC-V systems for software development.
+
+> **Console Implementation**: The uart8250 device in QEMU provides authentic serial console behavior, essential for embedded systems development and debugging.
+
+---
+
+<div align="center">
+
+**🖥️ Task 7 Complete - RISC-V Emulation Mastered! 🖥️**
+
+[![QEMU Emulation](https://img.shields.io/badge/QEMU-Emulation%20Success-brightgreen.svg)]()
+[![OpenSBI](https://img.shields.io/badge/OpenSBI-Firmware%20Boot-orange.svg)]()
+[![UART Console](https://img.shields.io/badge/UART-Console%20Output-blue.svg)]()
+
+</div>
