@@ -3606,3 +3606,467 @@ With timer interrupt mastery achieved:
 
 ---
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# ⚛️ Task 14: RV32IMAC vs RV32IMC - The "A" (Atomic) Extension
+
+[![RISC-V](https://img.shields.io/badge/Architecture-RISC--V-blue.svg)](https://riscv.org/)
+[![Atomic Operations](https://img.shields.io/badge/Extension-Atomic%20(A)-green.svg)]()
+[![Multiprocessor](https://img.shields.io/badge/Feature-Lock%20Free-orange.svg)]()
+[![Status](https://img.shields.io/badge/Status-✅%20Complete-success.svg)]()
+
+## 🎯 Objective
+
+Explain the 'A' (Atomic) extension in RV32IMAC and demonstrate the atomic instructions it adds. Show practical examples of lock-free data structures, atomic memory operations, and compare RV32IMAC vs RV32IMC to understand why atomic instructions are essential for multiprocessor systems and OS kernels.[1][2]
+
+## 📋 Prerequisites
+
+- ✅ Task 13 completed: Understanding of interrupts and system programming
+- ✅ RISC-V toolchain with RV32IMAC support
+- ✅ Knowledge of memory operations and concurrency concepts
+- ✅ Understanding of multiprocessor synchronization challenges
+
+## 🚀 Step-by-Step Implementation (Working Commands)
+
+### Step 1: Create Atomic Operations Demonstration Program
+
+ Create atomic operations demonstration program
+```bash
+cat << 'EOF' > task14_atomic_demo.c
+#include <stdint.h>
+
+// Global shared variables for atomic operations demonstration
+volatile uint32_t shared_counter = 0;
+volatile uint32_t lock_variable = 0;
+
+// Atomic Load-Reserved / Store-Conditional operations
+static inline uint32_t atomic_load_reserved(volatile uint32_t *addr) {
+    uint32_t result;
+    asm volatile ("lr.w %0, (%1)" : "=r"(result) : "r"(addr) : "memory");
+    return result;
+}
+
+static inline uint32_t atomic_store_conditional(volatile uint32_t *addr, uint32_t value) {
+    uint32_t result;
+    asm volatile ("sc.w %0, %2, (%1)" : "=r"(result) : "r"(addr), "r"(value) : "memory");
+    return result;  // 0 = success, 1 = failure
+}
+
+// Atomic Memory Operations (AMO)
+static inline uint32_t atomic_add(volatile uint32_t *addr, uint32_t value) {
+    uint32_t result;
+    asm volatile ("amoadd.w %0, %2, (%1)" : "=r"(result) : "r"(addr), "r"(value) : "memory");
+    return result;  // Returns old value
+}
+
+static inline uint32_t atomic_swap(volatile uint32_t *addr, uint32_t value) {
+    uint32_t result;
+    asm volatile ("amoswap.w %0, %2, (%1)" : "=r"(result) : "r"(addr), "r"(value) : "memory");
+    return result;  // Returns old value
+}
+
+static inline uint32_t atomic_and(volatile uint32_t *addr, uint32_t value) {
+    uint32_t result;
+    asm volatile ("amoand.w %0, %2, (%1)" : "=r"(result) : "r"(addr), "r"(value) : "memory");
+    return result;  // Returns old value
+}
+
+static inline uint32_t atomic_or(volatile uint32_t *addr, uint32_t value) {
+    uint32_t result;
+    asm volatile ("amoor.w %0, %2, (%1)" : "=r"(result) : "r"(addr), "r"(value) : "memory");
+    return result;  // Returns old value
+}
+
+// Lock-free increment using Load-Reserved/Store-Conditional
+void atomic_increment_lr_sc(volatile uint32_t *counter) {
+    uint32_t old_value, result;
+    
+    do {
+        old_value = atomic_load_reserved(counter);
+        result = atomic_store_conditional(counter, old_value + 1);
+    } while (result != 0);  // Retry if store-conditional failed
+}
+
+// Simple spinlock implementation using atomic operations
+void acquire_lock(volatile uint32_t *lock) {
+    while (atomic_swap(lock, 1) != 0) {
+        // Spin until lock is acquired (old value was 0)
+    }
+}
+
+void release_lock(volatile uint32_t *lock) {
+    atomic_swap(lock, 0);  // Release lock
+}
+
+// Demonstration functions
+void demonstrate_atomic_operations(void) {
+    uint32_t old_value;
+    
+    // 1. Atomic Add Operation
+    old_value = atomic_add(&shared_counter, 5);
+    // shared_counter increased by 5, old_value contains previous value
+    
+    // 2. Atomic Swap Operation
+    old_value = atomic_swap(&shared_counter, 100);
+    // shared_counter now contains 100, old_value contains previous value
+    
+    // 3. Atomic AND Operation
+    old_value = atomic_and(&shared_counter, 0xFF);
+    // shared_counter ANDed with 0xFF, old_value contains previous value
+    
+    // 4. Atomic OR Operation
+    old_value = atomic_or(&shared_counter, 0x80000000);
+    // shared_counter ORed with 0x80000000, old_value contains previous value
+}
+
+void demonstrate_lock_free_increment(void) {
+    // Lock-free increment using Load-Reserved/Store-Conditional
+    for (int i = 0; i < 10; i++) {
+        atomic_increment_lr_sc(&shared_counter);
+    }
+}
+
+void demonstrate_spinlock(void) {
+    // Acquire lock, perform critical section, release lock
+    acquire_lock(&lock_variable);
+    
+    // Critical section - only one thread can execute this
+    shared_counter += 1;
+    
+    release_lock(&lock_variable);
+}
+
+int main() {
+    // Initialize shared variables
+    shared_counter = 0;
+    lock_variable = 0;
+    
+    // Demonstrate different atomic operations
+    demonstrate_atomic_operations();
+    demonstrate_lock_free_increment();
+    demonstrate_spinlock();
+    
+    return 0;
+}
+
+/*
+RISC-V 'A' Extension Explanation:
+================================
+
+The 'A' extension adds atomic instructions for multiprocessor synchronization:
+
+1. Load-Reserved/Store-Conditional:
+   - lr.w: Load-reserved word
+   - sc.w: Store-conditional word
+   - Used for lock-free algorithms and atomic read-modify-write
+
+2. Atomic Memory Operations (AMO):
+   - amoadd.w: Atomic add
+   - amoswap.w: Atomic swap
+   - amoand.w: Atomic AND
+   - amoor.w: Atomic OR
+   - amoxor.w: Atomic XOR
+   - amomin.w/amomax.w: Atomic min/max operations
+
+Why Atomic Instructions are Useful:
+===================================
+1. Lock-free data structures (queues, stacks, lists)
+2. Operating system kernels (schedulers, memory management)
+3. Multiprocessor synchronization without locks
+4. High-performance concurrent programming
+5. Avoiding race conditions in shared memory systems
+*/
+EOF
+```
+
+### Step 2: Create Comparison Program (Without Atomic Operations)
+ Create non-atomic version for comparison
+```bash
+cat << 'EOF' > task14_non_atomic.c
+#include <stdint.h>
+
+// Same operations but WITHOUT atomic instructions (race condition prone)
+volatile uint32_t shared_counter = 0;
+volatile uint32_t lock_variable = 0;
+
+// Non-atomic increment (race condition possible)
+void non_atomic_increment(volatile uint32_t *counter) {
+    uint32_t temp = *counter;  // Read
+    temp = temp + 1;           // Modify
+    *counter = temp;           // Write (race condition here!)
+}
+
+// Non-atomic lock (unreliable)
+void unreliable_lock(volatile uint32_t *lock) {
+    while (*lock != 0) {
+        // Wait for lock to be free
+    }
+    *lock = 1;  // This is NOT atomic - race condition!
+}
+
+int main() {
+    // This code has race conditions in multiprocessor systems
+    non_atomic_increment(&shared_counter);
+    unreliable_lock(&lock_variable);
+    
+    return 0;
+}
+
+/*
+Problems with Non-Atomic Operations:
+====================================
+1. Race conditions in multiprocessor systems
+2. Lost updates when multiple cores access same memory
+3. Inconsistent data in shared data structures
+4. Need for expensive locking mechanisms
+5. Reduced performance due to lock contention
+
+This is why the 'A' extension is crucial for modern systems!
+*/
+EOF
+```
+
+### Step 3: Create Assembly Startup Code
+ Create assembly startup file for atomic operations
+```bash
+cat << 'EOF' > atomic_start.s
+.section .text.start
+.global _start
+
+_start:
+    # Set up stack pointer
+    lui sp, %hi(_stack_top)
+    addi sp, sp, %lo(_stack_top)
+    
+    # Call main program
+    call main
+    
+    # Infinite loop
+1:  j 1b
+
+.size _start, . - _start
+EOF
+```
+### Step 4: Create Linker Script
+Create linker script for atomic operations demo
+```bash
+cat << 'EOF' > atomic.ld
+/*
+ * Linker Script for Atomic Operations Demo - RV32IMAC
+ * Places .text at 0x00000000 (Flash/ROM)
+ * Places .data at 0x10000000 (SRAM)
+ */
+
+ENTRY(_start)
+
+MEMORY
+{
+    FLASH (rx)  : ORIGIN = 0x00000000, LENGTH = 256K
+    SRAM  (rwx) : ORIGIN = 0x10000000, LENGTH = 64K
+}
+
+SECTIONS
+{
+    /* Text section in Flash at 0x00000000 */
+    .text 0x00000000 : {
+        *(.text.start)    /* Entry point first */
+        *(.text*)         /* All other text */
+        *(.rodata*)       /* Read-only data */
+    } > FLASH
+
+    /* Data section in SRAM at 0x10000000 */
+    .data 0x10000000 : {
+        _data_start = .;
+        *(.data*)         /* Initialized data */
+        _data_end = .;
+    } > SRAM
+
+    /* BSS section in SRAM */
+    .bss : {
+        _bss_start = .;
+        *(.bss*)          /* Uninitialized data */
+        _bss_end = .;
+    } > SRAM
+
+    /* Stack at end of SRAM */
+    _stack_top = ORIGIN(SRAM) + LENGTH(SRAM);
+}
+EOF
+```
+### Step 5: Compile with Atomic Extension
+Compile the atomic operations program with RV32IMAC
+```bash
+riscv32-unknown-elf-gcc -march=rv32imac -c atomic_start.s -o atomic_start.o
+riscv32-unknown-elf-gcc -march=rv32imac -c task14_atomic_demo.c -o task14_atomic_demo.o
+```
+ Link with custom linker script
+```bash
+riscv32-unknown-elf-ld -T atomic.ld atomic_start.o task14_atomic_demo.o -o task14_atomic_demo.elf
+```
+ Also compile non-atomic version for comparison
+```bash
+riscv32-unknown-elf-gcc -march=rv32imc -c task14_non_atomic.c -o task14_non_atomic.o
+riscv32-unknown-elf-ld -T atomic.ld atomic_start.o task14_non_atomic.o -o task14_non_atomic.elf
+```
+### Step 6: Analyze Atomic Instructions
+ Generate assembly to see atomic instructions
+```bash
+riscv32-unknown-elf-gcc -march=rv32imac -S task14_atomic_demo.c
+```
+ Check for atomic instructions in generated assembly
+```bash
+echo "=== Atomic Instructions Generated ==="
+grep -E "(lr\.w|sc\.w|amoadd|amoswap|amoand|amoor)" task14_atomic_demo.s
+```
+
+### Step 7: Create Complete Build Script
+Create complete working build script for Task 14
+```bash
+cat << 'EOF' > build_atomic_demo.sh
+#!/bin/bash
+echo "=== Task 14: Atomic Extension Demonstration ==="
+
+# Compile with RV32IMAC (includes atomic extension)
+echo "1. Compiling with atomic extension (RV32IMAC)..."
+riscv32-unknown-elf-gcc -march=rv32imac -c atomic_start.s -o atomic_start.o
+riscv32-unknown-elf-gcc -march=rv32imac -c task14_atomic_demo.c -o task14_atomic_demo.o
+riscv32-unknown-elf-ld -T atomic.ld atomic_start.o task14_atomic_demo.o -o task14_atomic_demo.elf
+
+echo "2. Compiling without atomic extension (RV32IMC)..."
+riscv32-unknown-elf-gcc -march=rv32imc -c task14_non_atomic.c -o task14_non_atomic.o
+riscv32-unknown-elf-ld -T atomic.ld atomic_start.o task14_non_atomic.o -o task14_non_atomic.elf
+
+echo "✓ Compilation successful!"
+
+# Verify results
+echo -e "\n3. Verifying atomic operations program:"
+file task14_atomic_demo.elf
+
+echo -e "\n4. Checking for atomic instructions:"
+riscv32-unknown-elf-gcc -march=rv32imac -S task14_atomic_demo.c
+grep -E "(lr\.w|sc\.w|amoadd|amoswap|amoand|amoor)" task14_atomic_demo.s
+
+echo -e "\n5. Disassembly showing atomic instructions:"
+riscv32-unknown-elf-objdump -d task14_atomic_demo.elf | grep -A 2 -B 2 "lr\.w\|sc\.w\|amo"
+
+echo -e "\n✓ Atomic extension demonstration ready!"
+EOF
+
+chmod +x build_atomic_demo.sh
+./build_atomic_demo.sh
+```
+
+### Expected Working Results:
+```bash
+✅ Compilation Success:
+text
+task14_atomic_demo.elf: ELF 32-bit LSB executable, UCB RISC-V, RVC, soft-float ABI, version 1 (SYSV), statically linked
+✅ Atomic Instructions Generated:
+lr.w: Load-reserved word
+
+sc.w: Store-conditional word
+
+amoadd.w: Atomic add word
+
+amoswap.w: Atomic swap word
+
+amoand.w: Atomic AND word
+
+amoor.w: Atomic OR word
+
+✅ Key Benefits of 'A' Extension:
+Lock-free programming: Algorithms without traditional locks
+
+Multiprocessor synchronization: Safe concurrent memory access
+
+Performance: Reduced lock contention and better scalability
+
+OS kernels: Essential for scheduler and memory management
+
+Data structures: Concurrent queues, stacks, and lists
+```
+
+
+## 📸 Implementation Output
+
+![Screenshot 2025-06-08 010934](https://github.com/user-attachments/assets/90a0d9af-6bb1-4049-8f52-7dbe24102369)
+![Screenshot 2025-06-08 010944](https://github.com/user-attachments/assets/c8582bfa-15de-4daa-a866-d5ad7a841d43)
+![Screenshot 2025-06-08 010953](https://github.com/user-attachments/assets/198787bc-1c27-4a2e-a6e2-b0238dc56f1c)
+
+
+## 🎉 Success Criteria
+
+Task 14 is considered **complete** when:
+- [x] Atomic operations program created with proper inline assembly
+- [x] Compilation succeeds with RV32IMAC architecture
+- [x] All atomic instructions generated: lr.w, sc.w, amoadd.w, amoswap.w, amoand.w, amoor.w
+- [x] Load-Reserved/Store-Conditional pattern implemented correctly
+- [x] Atomic Memory Operations (AMO) demonstrated for various operations
+- [x] Lock-free programming examples working (spinlock, atomic increment)
+- [x] Comparison between RV32IMAC and RV32IMC clearly shown
+- [x] Practical applications explained (OS kernels, lock-free data structures)
+
+## 💡 Key Learning Outcomes
+
+### **Atomic Operations Mastery:**
+- ✅ **Load-Reserved/Store-Conditional**: Understanding of lr.w/sc.w pattern for lock-free algorithms
+- ✅ **Atomic Memory Operations**: Complete knowledge of AMO instructions and their usage
+- ✅ **Lock-Free Programming**: Implementing spinlocks and atomic counters without traditional locks
+- ✅ **Multiprocessor Synchronization**: Understanding hardware-level concurrency support
+
+### **RISC-V Architecture Understanding:**
+- ✅ **Extension Benefits**: Why 'A' extension is crucial for modern computing
+- ✅ **Instruction Set Comparison**: RV32IMAC vs RV32IMC practical differences
+- ✅ **Hardware Support**: How atomic instructions interact with cache coherence
+- ✅ **Performance Impact**: Benefits of hardware atomics over software locks
+
+### **System Programming Skills:**
+- ✅ **Concurrent Programming**: Writing safe multi-threaded code without locks
+- ✅ **OS Development**: Foundation for kernel synchronization mechanisms
+- ✅ **Performance Optimization**: Lock-free techniques for high-performance applications
+- ✅ **Hardware Interface**: Direct use of processor atomic capabilities
+
+## 🔗 Next Steps
+
+With atomic operations mastery achieved:
+- **Advanced Lock-Free Structures**: Implementing concurrent queues, stacks, hash tables
+- **Memory Ordering**: Understanding acquire/release semantics and memory barriers
+- **Real-time Systems**: Using atomic operations for deterministic multiprocessor systems
+- **Operating System Development**: Implementing schedulers and memory managers with atomics
+
+---
+
+## 📝 Technical Notes
+
+> **Hardware Atomicity**: The 'A' extension provides true hardware-level atomic operations, eliminating the need for software-based locking mechanisms and enabling high-performance concurrent programming.
+
+> **Cache Coherence**: Atomic instructions work seamlessly with cache coherence protocols, ensuring consistent behavior across multiple processor cores.
+
+> **Performance Benefits**: Lock-free algorithms using atomic instructions can significantly outperform mutex-based approaches, especially under high contention scenarios.
+
+---
+
