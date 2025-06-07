@@ -8,12 +8,19 @@ This document outlines the tasks completed in Week 1 of the RISC-V SoC Lab, focu
 
 This section details the process of unpacking the xPack RISC-V toolchain, adding it to the system's PATH, and verifying the functionality of `gcc`, `objdump`, and `gdb` binaries.
 
-### Steps:
+---
 
-#### 1. Download the Toolchain
+### ✅ Steps:
+
+---
+
+### 🔽 1. **Download the Toolchain**
+
 Used `wget` to download the `xpack-riscv-none-elf-gcc` archive.
 
+```bash
 wget https://github.com/xpack-dev-tools/riscv-none-elf-gcc-xpack/releases/download/v14.2.0-3/xpack-riscv-none-elf-gcc-14.2.0-3-linux-x64.tar.gz
+
 
 
 #### 2. Unpack the Archive
