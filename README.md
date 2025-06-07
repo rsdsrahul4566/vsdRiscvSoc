@@ -27,6 +27,7 @@ Added the toolchain binaries to the current session's PATH.
 
 '''bash
 export PATH=$PWD/xpack-riscv-none-elf-gcc-14.2.0-3/bin:$PATH
+'''
 
 
 #### 4. Check if Binaries Work
