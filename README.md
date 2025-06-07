@@ -446,3 +446,227 @@ With assembly analysis complete, proceed to:
 - **Task 5**: RISC-V ABI and register convention reference guide
 
 ---
+
+# 🔍 Task 4: Hex Dump & Disassembly Analysis
+
+[![RISC-V](https://img.shields.io/badge/Architecture-RISC--V-blue.svg)](https://riscv.org/)
+[![Binary Analysis](https://img.shields.io/badge/Analysis-Binary%20Disassembly-purple.svg)]()
+[![Intel HEX](https://img.shields.io/badge/Format-Intel%20HEX-orange.svg)]()
+[![Status](https://img.shields.io/badge/Status-✅%20Complete-success.svg)]()
+
+## 🎯 Objective
+
+Convert the compiled RISC-V ELF binary to Intel HEX format for hardware deployment and perform detailed disassembly analysis to understand machine code structure, instruction encoding, and memory layout of the cross-compiled program.[1]
+
+## 📋 Prerequisites
+
+- ✅ Task 3 completed: Assembly analysis understanding achieved
+- ✅ `hello.elf` binary from Task 2 available in working directory
+- ✅ RISC-V toolchain accessible at `/opt/riscv/riscv/bin/`
+- ✅ Understanding of hexadecimal notation and binary formats
+
+## 🚀 Step-by-Step Implementation
+
+### Step 1: Generate Complete Disassembly
+
+Create a detailed disassembly of the ELF binary to examine machine code and instruction encoding.
+Generate comprehensive disassembly and save to file
+```bash
+riscv32-unknown-elf-objdump -d hello.elf > hello.dump
+```
+Verify disassembly file was created
+```bash
+ls -la hello.dump
+```
+View the complete disassembly output
+```bash
+cat hello.dump
+```
+
+### Step 2: Convert ELF to Intel HEX Format
+
+Generate Intel HEX format suitable for programming embedded systems and hardware simulators.
+Convert ELF binary to Intel HEX format
+```bash
+riscv32-unknown-elf-objcopy -O ihex hello.elf hello.hex
+```
+Verify HEX file creation
+```bash
+ls -la hello.hex
+```
+View the Intel HEX output
+```bash
+cat hello.hex
+```
+
+### Step 3: Analyze Main Function Disassembly
+
+Focus on the main function to understand the column structure and instruction encoding.
+
+Extract main function disassembly for detailed analysis
+```bash
+grep -A 20 "<main>:" hello.dump
+```
+
+View disassembly with context around main function
+```bash
+grep -B 5 -A 20 "<main>:" hello.dump
+```
+
+## 📊 Working Disassembly Output Analysis
+
+Based on your successful WSL implementation, here's the actual disassembly structure:
+
+### 🔧 **Disassembly Column Structure:**
+
+```bash
+00010162 <main>:
+10162: 1141 addi sp,sp,-16
+10164: c606 sw ra,12(sp)
+10166: c422 sw s0,8(sp)
+10168: 0800 addi s0,sp,16
+```
+
+### 📋 **Column Explanation:**
+
+| Column Position | Example | Description | Purpose |
+|----------------|---------|-------------|---------|
+| **1️⃣ Address** | `10162` | Memory location (hexadecimal) | Shows where instruction is loaded in memory |
+| **2️⃣ Opcode** | `1141` | Machine code bytes (hex) | Actual binary instruction encoding |
+| **3️⃣ Mnemonic** | `addi` | Assembly instruction name | Human-readable instruction type |
+| **4️⃣ Operands** | `sp,sp,-16` | Registers and immediate values | Instruction parameters and targets |
+
+### 🎯 **Compressed Instruction Analysis:**
+
+**Key Observations from Your Output:**
+- **2-byte Opcodes**: `1141`, `c606`, `c422` demonstrate RV32C (compressed) instructions
+- **Memory Addresses**: Sequential 2-byte increments (10162, 10164, 10166, 10168)
+- **Instruction Density**: Compressed instructions provide ~30% code size reduction
+- **Mixed Encoding**: Some instructions may use 4-byte encoding for complex operations
+
+### 🔄 **Function Structure in Machine Code:**
+
+Prologue (Stack Setup):
+10162: 1141 addi sp,sp,-16 # Compressed stack allocation
+10164: c606 sw ra,12(sp) # Compressed return address save
+10166: c422 sw s0,8(sp) # Compressed frame pointer save
+10168: 0800 addi s0,sp,16 # Frame pointer setup
+
+Body (String Loading and Function Call):
+1016a: 67c9 lui a5,0x12 # Load upper immediate
+1016c: 45c78513 addi a0,a5,1116 # Complete address calculation
+10170: 26bd jal 104de <puts> # Compressed jump and link
+
+Epilogue (Cleanup and Return):
+10172: 4781 li a5,0 # Load immediate zero
+10174: 853e mv a0,a5 # Move return value
+10176: 40b2 lw ra,12(sp) # Restore return address
+10178: 4422 lw s0,8(sp) # Restore frame pointer
+1017a: 0141 addi sp,sp,16 # Restore stack pointer
+1017c: 8082 ret # Compressed return
+
+
+## 📄 Intel HEX Format Analysis
+
+Based on successful conversion, the Intel HEX output structure:
+
+### **Sample HEX Output:**
+```bash
+:10390000F8380100F83801000039010000390100E1
+:10391000083901000839010010390100103901008F
+:10392000183901001839010020390100203901003F
+...
+:00000001FF
+```
+
+### **HEX Format Structure:**
+- **`:10`**: Record marker and byte count (16 bytes)
+- **`390000`**: Load address for this data block
+- **`F8380100...`**: Actual program data (machine code)
+- **`E1`**: Checksum for data integrity
+- **`:00000001FF`**: End-of-file record
+
+## 📸 Implementation Output
+
+![Task 4 Hex Dump and Disassembly](screenshots/task4_hex_disassembly.png)
+
+*Screenshot demonstrating successful binary disassembly with detailed column analysis and Intel HEX conversion showing machine code structure and memory layout.*
+
+## ⚠️ Troubleshooting Guide
+
+### Common Issues and Solutions:
+
+| Issue | Symptom | Root Cause | Solution |
+|-------|---------|------------|----------|
+| **Empty Disassembly** | `hello.dump` empty or no output | ELF file missing or corrupted | Verify: `ls -la hello.elf` and re-compile if needed |
+| **No HEX Output** | `hello.hex` not created | objcopy failed | Check: `which riscv32-unknown-elf-objcopy` |
+| **Permission Denied** | Cannot write output files | Directory permissions | Verify write access: `ls -la .` |
+| **Malformed HEX** | Invalid HEX format | Conversion error | Re-run objcopy with verbose: `-v` flag |
+
+### Debugging Commands:
+Verify input file exists and is valid ELF
+```bash
+file hello.elf
+```
+Check if objdump is accessible
+```bash
+which riscv32-unknown-elf-objdump
+```
+Test basic disassembly without file output
+```bash
+riscv32-unknown-elf-objdump -d hello.elf | head -20
+```
+Verify objcopy functionality
+```bash
+riscv32-unknown-elf-objcopy --version
+```
+Re-generate files with verification
+```bash
+riscv32-unknown-elf-objdump -d hello.elf > hello.dump && echo "Disassembly created"
+riscv32-unknown-elf-objcopy -O ihex hello.elf hello.hex && echo "HEX file created"
+```
+
+### **Intel HEX Applications:**
+- **Embedded Programming**: Direct flash memory programming
+- **Simulator Input**: RISC-V simulator and emulator loading
+- **Hardware Testing**: FPGA and ASIC verification
+- **Bootloader**: System initialization and program loading
+
+## 🎉 Success Criteria
+
+Task 4 is considered **complete** when:
+- [x] Disassembly file `hello.dump` contains readable machine code analysis
+- [x] Intel HEX file `hello.hex` generated with proper format and checksums
+- [x] Column structure (address, opcode, mnemonic, operands) is understood
+- [x] Compressed instruction encoding (RV32C) is identified and analyzed
+- [x] Main function machine code mapping to assembly is verified
+- [x] Binary is ready for hardware deployment or simulation
+- [x] Ready for ABI and register analysis in Task 5
+
+## 💡 Key Learning Outcomes
+
+### **Binary Analysis Skills:**
+- ✅ **Disassembly Interpretation**: Reading and understanding machine code output
+- ✅ **Instruction Encoding**: Recognition of compressed vs. standard instruction formats
+- ✅ **Memory Layout**: Understanding address organization and code placement
+- ✅ **Format Conversion**: ELF to Intel HEX transformation for deployment
+
+### **RISC-V Architecture Insights:**
+- ✅ **Compressed Extensions**: Benefits and encoding of RV32C instruction set
+- ✅ **Address Calculation**: Multi-instruction sequences for 32-bit addresses
+- ✅ **Code Density**: Impact of instruction compression on program size
+- ✅ **Hardware Interface**: Preparation of binaries for embedded deployment
+
+### **Development Workflow:**
+- ✅ **Tool Proficiency**: Advanced usage of objdump and objcopy utilities
+- ✅ **Debug Techniques**: Binary analysis for troubleshooting and verification
+- ✅ **Deployment Preparation**: Format conversion for target hardware
+- ✅ **Quality Assurance**: Verification of compilation and linking results
+
+## 🔗 Next Steps
+
+With binary analysis complete, proceed to:
+- **Task 5**: RISC-V ABI and register convention comprehensive reference
+- **Advanced Topics**: Debugging with GDB, performance analysis, and optimization
+
+---
