@@ -670,3 +670,290 @@ With binary analysis complete, proceed to:
 - **Advanced Topics**: Debugging with GDB, performance analysis, and optimization
 
 ---
+
+# 📚 Task 5: RISC-V ABI & Register Cheat-Sheet
+
+[![RISC-V](https://img.shields.io/badge/Architecture-RISC--V-blue.svg)](https://riscv.org/)
+[![ABI](https://img.shields.io/badge/Standard-ABI%20Reference-green.svg)]()
+[![Calling Convention](https://img.shields.io/badge/Convention-RISC--V%20Standard-orange.svg)]()
+[![Status](https://img.shields.io/badge/Status-✅%20Complete-success.svg)]()
+
+## 🎯 Objective
+
+Create a comprehensive RISC-V Application Binary Interface (ABI) reference guide that maps all 32 integer registers to their ABI names and documents the complete calling convention rules for function arguments, return values, and register preservation requirements.[1][2]
+
+## 📋 Prerequisites
+
+- ✅ Tasks 1-4 completed: Understanding of RISC-V assembly and binary analysis
+- ✅ Assembly analysis from Task 3 showing register usage patterns
+- ✅ Python3 available in WSL environment for table generation
+- ✅ Understanding of function calling mechanisms and stack operations
+
+## 🚀 Step-by-Step Implementation
+
+### Step 1: Create Register Reference Generator
+
+Create a Python script to generate the complete RISC-V register mapping table.
+```bash
+nano risc_v_registers.py
+```
+
+**Python Code for Register Table:**
+```bash
+import pandas as pd
+
+Define complete RISC-V register information
+registers = [
+{"Register": "x0", "ABI Name": "zero", "Type": "Special", "Calling Convention": "Hard-wired zero", "Description": "Always contains value 0, writes ignored"},
+{"Register": "x1", "ABI Name": "ra", "Type": "Link", "Calling Convention": "Return address", "Description": "Caller-saved, holds return address"},
+{"Register": "x2", "ABI Name": "sp", "Type": "Pointer", "Calling Convention": "Stack pointer", "Description": "Callee-saved, points to top of stack"},
+{"Register": "x3", "ABI Name": "gp", "Type": "Pointer", "Calling Convention": "Global pointer", "Description": "Thread-local, points to global data"},
+{"Register": "x4", "ABI Name": "tp", "Type": "Pointer", "Calling Convention": "Thread pointer", "Description": "Thread-local, points to thread data"},
+{"Register": "x5", "ABI Name": "t0", "Type": "Temporary", "Calling Convention": "Caller-saved", "Description": "Temporary register 0"},
+{"Register": "x6", "ABI Name": "t1", "Type": "Temporary", "Calling Convention": "Caller-saved", "Description": "Temporary register 1"},
+{"Register": "x7", "ABI Name": "t2", "Type": "Temporary", "Calling Convention": "Caller-saved", "Description": "Temporary register 2"},
+{"Register": "x8", "ABI Name": "s0/fp", "Type": "Saved", "Calling Convention": "Callee-saved", "Description": "Saved register 0 / Frame pointer"},
+{"Register": "x9", "ABI Name": "s1", "Type": "Saved", "Calling Convention": "Callee-saved", "Description": "Saved register 1"},
+{"Register": "x10", "ABI Name": "a0", "Type": "Argument", "Calling Convention": "Arg 0 / Return 0", "Description": "Function argument 0 / Return value 0"},
+{"Register": "x11", "ABI Name": "a1", "Type": "Argument", "Calling Convention": "Arg 1 / Return 1", "Description": "Function argument 1 / Return value 1"},
+{"Register": "x12", "ABI Name": "a2", "Type": "Argument", "Calling Convention": "Argument 2", "Description": "Function argument 2"},
+{"Register": "x13", "ABI Name": "a3", "Type": "Argument", "Calling Convention": "Argument 3", "Description": "Function argument 3"},
+{"Register": "x14", "ABI Name": "a4", "Type": "Argument", "Calling Convention": "Argument 4", "Description": "Function argument 4"},
+{"Register": "x15", "ABI Name": "a5", "Type": "Argument", "Calling Convention": "Argument 5", "Description": "Function argument 5"},
+{"Register": "x16", "ABI Name": "a6", "Type": "Argument", "Calling Convention": "Argument 6", "Description": "Function argument 6"},
+{"Register": "x17", "ABI Name": "a7", "Type": "Argument", "Calling Convention": "Argument 7", "Description": "Function argument 7"},
+{"Register": "x18", "ABI Name": "s2", "Type": "Saved", "Calling Convention": "Callee-saved", "Description": "Saved register 2"},
+{"Register": "x19", "ABI Name": "s3", "Type": "Saved", "Calling Convention": "Callee-saved", "Description": "Saved register 3"},
+{"Register": "x20", "ABI Name": "s4", "Type": "Saved", "Calling Convention": "Callee-saved", "Description": "Saved register 4"},
+{"Register": "x21", "ABI Name": "s5", "Type": "Saved", "Calling Convention": "Callee-saved", "Description": "Saved register 5"},
+{"Register": "x22", "ABI Name": "s6", "Type": "Saved", "Calling Convention": "Callee-saved", "Description": "Saved register 6"},
+{"Register": "x23", "ABI Name": "s7", "Type": "Saved", "Calling Convention": "Callee-saved", "Description": "Saved register 7"},
+{"Register": "x24", "ABI Name": "s8", "Type": "Saved", "Calling Convention": "Callee-saved", "Description": "Saved register 8"},
+{"Register": "x25", "ABI Name": "s9", "Type": "Saved", "Calling Convention": "Callee-saved", "Description": "Saved register 9"},
+{"Register": "x26", "ABI Name": "s10", "Type": "Saved", "Calling Convention": "Callee-saved", "Description": "Saved register 10"},
+{"Register": "x27", "ABI Name": "s11", "Type": "Saved", "Calling Convention": "Callee-saved", "Description": "Saved register 11"},
+{"Register": "x28", "ABI Name": "t3", "Type": "Temporary", "Calling Convention": "Caller-saved", "Description": "Temporary register 3"},
+{"Register": "x29", "ABI Name": "t4", "Type": "Temporary", "Calling Convention": "Caller-saved", "Description": "Temporary register 4"},
+{"Register": "x30", "ABI Name": "t5", "Type": "Temporary", "Calling Convention": "Caller-saved", "Description": "Temporary register 5"},
+{"Register": "x31", "ABI Name": "t6", "Type": "Temporary", "Calling Convention": "Caller-saved", "Description": "Temporary register 6"}
+]
+
+print("=" * 100)
+print("RISC-V 32-bit Integer Register Mapping")
+print("=" * 100)
+
+Create and display the main table
+df = pd.DataFrame(registers)
+print(df.to_string(index=False))
+
+print("\n" + "=" * 100)
+print("RISC-V Calling Convention Summary")
+print("=" * 100)
+
+print("\n🔹 Function Arguments and Return Values:")
+print(" - a0-a7 (x10-x17): Function arguments and return values")
+print(" - a0-a1: Also used for return values (up to 64-bit returns)")
+print(" - Arguments beyond a7 passed on stack")
+
+print("\n🔹 Callee-Saved Registers (functions must preserve these if used):")
+print(" - sp (x2): Stack pointer - must always be preserved")
+print(" - s0-s11 (x8-x9, x18-x27): Saved registers - function must restore if modified")
+print(" - s0/fp (x8): Often used as frame pointer")
+
+print("\n🔹 Caller-Saved Registers (functions can freely modify these):")
+print(" - ra (x1): Return address - caller saves if needed across calls")
+print(" - t0-t6 (x5-x7, x28-x31): Temporary registers - no preservation required")
+print(" - a0-a7 (x10-x17): Argument registers - caller saves if values needed after call")
+
+print("\n🔹 Special Purpose Registers:")
+print(" - zero (x0): Always zero, writes ignored")
+print(" - gp (x3): Global pointer for accessing global variables")
+print(" - tp (x4): Thread pointer for thread-local storage")
+
+print("\n" + "=" * 100)
+print("Task 5 Complete: RISC-V ABI & Register Cheat-Sheet Generated")
+print("=" * 100)
+```
+
+
+### Step 2: Install Required Dependencies
+
+Ensure Python pandas is available for table formatting.
+
+Check if pandas is installed
+```bash
+python3 -c "import pandas; print('pandas is available')"
+```
+Install pandas if not available
+```bash
+pip3 install pandas
+```
+
+### Step 3: Generate the Register Reference Table
+
+Execute the Python script to generate the complete RISC-V register reference.
+
+Run the register table generator
+```bash
+python3 risc_v_registers.py
+```
+Save output to file for reference
+```bash
+python3 risc_v_registers.py > risc_v_register_reference.txt
+```
+View the saved reference
+```bash
+cat risc_v_register_reference.txt
+```
+### Step 4: Verify Register Usage in Your Assembly
+
+Cross-reference the generated table with your Task 3 assembly output to confirm register usage patterns.
+
+Compare register usage in your assembly with ABI conventions
+```bash
+grep -E "(ra|sp|s0|a0|a5)" hello.s
+```
+Analyze register preservation in your main function
+```bash
+grep -A 20 "main:" hello.s | grep -E "(sw|lw|mv|li)"
+```
+
+## 📊 Complete RISC-V Register Reference
+
+Based on your successful implementation, here's the comprehensive register mapping:
+
+### 🔧 **Register Categories and Usage:**
+
+#### **🔒 Special Purpose Registers:**
+| Register | ABI Name | Purpose | Convention |
+|----------|----------|---------|------------|
+| x0 | zero | Hard-wired zero | Always 0, writes ignored |
+| x1 | ra | Return address | Caller-saved link register |
+| x2 | sp | Stack pointer | Callee-saved, 16-byte aligned |
+| x3 | gp | Global pointer | Thread-local data access |
+| x4 | tp | Thread pointer | Thread-local storage |
+
+#### **📤 Function Argument & Return Registers:**
+| Register | ABI Name | Purpose | Usage in Your Code |
+|----------|----------|---------|-------------------|
+| x10 | a0 | Argument 0 / Return 0 | String pointer to printf, return value |
+| x11 | a1 | Argument 1 / Return 1 | Additional args/64-bit returns |
+| x12-x17 | a2-a7 | Arguments 2-7 | Function parameter passing |
+
+#### **💾 Callee-Saved Registers (Must Preserve):**
+| Register | ABI Name | Purpose | Observed in Assembly |
+|----------|----------|---------|---------------------|
+| x8 | s0/fp | Saved 0 / Frame pointer | Used in your prologue/epilogue |
+| x9 | s1 | Saved register 1 | Available for local variables |
+| x18-x27 | s2-s11 | Saved registers 2-11 | Long-term storage across calls |
+
+#### **⚡ Caller-Saved Registers (Free to Modify):**
+| Register | ABI Name | Purpose | Usage Pattern |
+|----------|----------|---------|---------------|
+| x5-x7 | t0-t2 | Temporary 0-2 | Short-term computation |
+| x28-x31 | t3-t6 | Temporary 3-6 | Additional temporaries |
+
+### 🎯 **Calling Convention Rules:**
+
+#### **Function Call Sequence:**
+1. **Arguments**: Pass in a0-a7, additional on stack
+2. **Call**: `call` instruction saves return address in ra
+3. **Prologue**: Callee saves ra, fp, allocates stack
+4. **Body**: Function execution with preserved registers
+5. **Epilogue**: Restore saved registers, deallocate stack
+6. **Return**: `ret` instruction (equivalent to `jr ra`)
+
+#### **Register Preservation Requirements:**
+
+MUST PRESERVE (Callee responsibility):
+
+sp (x2): Stack pointer
+
+s0-s11 (x8-x9, x18-x27): Saved registers
+
+gp (x3), tp (x4): Thread-local pointers
+
+MAY MODIFY (Caller responsibility):
+
+ra (x1): Return address
+
+t0-t6 (x5-x7, x28-x31): Temporaries
+
+a0-a7 (x10-x17): Arguments/returns
+
+
+## 📸 Implementation Output
+
+![Task 5 Register Reference](screenshots/task5_register_reference.png)
+
+*Screenshot demonstrating complete RISC-V register mapping table generation with ABI names, calling conventions, and comprehensive usage documentation.*
+
+## ⚠️ Troubleshooting Guide
+
+### Common Issues and Solutions:
+
+| Issue | Symptom | Root Cause | Solution |
+|-------|---------|------------|----------|
+| **Pandas Not Found** | `ModuleNotFoundError: No module named 'pandas'` | Missing dependency | Install: `pip3 install pandas` |
+| **Table Format Issues** | Misaligned output | Terminal width | Use: `python3 script.py \| less -S` |
+| **Permission Denied** | Cannot save output file | Directory permissions | Check: `ls -la .` and adjust permissions |
+| **Python Not Found** | `python3: command not found` | Python not installed | Install: `sudo apt install python3` |
+
+### Debugging Commands:
+Verify Python installation
+```bash
+python3 --version
+```
+Check pandas availability
+```bash
+python3 -c "import pandas as pd; print(pd.version)"
+```
+Test script syntax
+```bash
+python3 -m py_compile risc_v_registers.py
+```
+Run with error handling
+```bash
+python3 risc_v_registers.py 2>&1 | tee register_output.log
+```
+
+## 🎉 Success Criteria
+
+Task 5 is considered **complete** when:
+- [x] Complete 32-register mapping table generated successfully
+- [x] All ABI names (zero, ra, sp, gp, tp, t0-t6, s0-s11, a0-a7) documented
+- [x] Calling convention rules clearly explained and categorized
+- [x] Register preservation requirements understood and documented
+- [x] Cross-reference with Tasks 1-4 assembly code completed
+- [x] Comprehensive reference available for future RISC-V development
+
+## 💡 Key Learning Outcomes
+
+### **ABI Knowledge Mastery:**
+- ✅ **Register Allocation**: Complete understanding of RISC-V register purposes
+- ✅ **Calling Conventions**: Mastery of argument passing and return mechanisms
+- ✅ **Stack Management**: Understanding of frame pointer and stack operations
+- ✅ **Code Analysis**: Ability to analyze assembly for ABI compliance
+
+### **Development Skills:**
+- ✅ **Reference Creation**: Building comprehensive documentation and lookup tables
+- ✅ **Cross-Platform Tools**: Using Python for development utility creation
+- ✅ **Assembly Correlation**: Connecting theoretical ABI to practical implementation
+- ✅ **Debugging Capability**: Understanding register usage for troubleshooting
+
+### **Professional Competencies:**
+- ✅ **Technical Documentation**: Creating clear, comprehensive reference materials
+- ✅ **System Architecture**: Deep understanding of processor calling conventions
+- ✅ **Code Quality**: Ensuring ABI compliance in development work
+- ✅ **Knowledge Transfer**: Building reusable reference tools for team use
+
+## 🔗 Next Steps
+
+With complete ABI mastery achieved, explore advanced topics:
+- **Performance Optimization**: Register allocation strategies
+- **Debugging Techniques**: Using GDB with RISC-V register knowledge
+- **Advanced Assembly**: Hand-optimized assembly routines
+- **System Programming**: Operating system and bare-metal development
+
+---
+
