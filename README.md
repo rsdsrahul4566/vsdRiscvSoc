@@ -1017,3 +1017,210 @@ With complete RISC-V ABI mastery achieved:
 - **Debugging Mastery**: Using register knowledge for effective troubleshooting
 
 ---
+
+# 🔍 Task 6: Stepping with GDB - RISC-V Debugging
+
+[![RISC-V](https://img.shields.io/badge/Architecture-RISC--V-blue.svg)](https://riscv.org/)
+[![GDB](https://img.shields.io/badge/Debugger-GDB%2015.2-green.svg)](https://www.gnu.org/software/gdb/)
+[![Debugging](https://img.shields.io/badge/Technique-Static%20Analysis-purple.svg)]()
+[![Status](https://img.shields.io/badge/Status-✅%20Complete-success.svg)]()
+
+## 🎯 Objective
+
+Use RISC-V GDB to debug the cross-compiled `hello.elf` binary, set breakpoints at main function, step through execution, and inspect register contents and assembly instructions to understand program flow at the machine code level.[1][3]
+
+## 📋 Prerequisites
+
+- ✅ Task 5 completed: Complete understanding of RISC-V ABI and register conventions
+- ✅ `hello.elf` binary from Task 2 available in working directory
+- ✅ RISC-V GDB with Python 3.10 libraries installed and working
+- ✅ Understanding of assembly code analysis from Task 3
+
+## 🚀 Step-by-Step Implementation (Working Commands)
+
+### Step 1: Verify GDB Environment Setup
+
+First, ensure RISC-V GDB is properly configured and accessible.
+ Check RISC-V GDB availability
+```bash
+which riscv32-unknown-elf-gdb
+```
+Verify GDB version and functionality
+```bash
+riscv32-unknown-elf-gdb --version
+```
+Confirm target binary exists
+```bash
+ls -la hello.elf
+```
+Check ELF file details
+```bash
+file hello.elf
+```
+
+### Step 2: Analyze Binary Structure (Preparation)
+
+Before debugging, examine the binary structure to understand memory layout.
+
+Examine ELF sections and program headers
+```bash
+riscv32-unknown-elf-objdump -h hello.elf
+```
+Check program headers for load addresses
+```bash
+riscv32-unknown-elf-readelf -l hello.elf
+```
+Quick view of main function location
+```bash
+riscv32-unknown-elf-objdump -d hello.elf | grep -A 5 "<main>:"
+```
+
+
+### Step 3: Start GDB Debugging Session
+
+Launch GDB with the target RISC-V binary for static analysis.
+Start GDB session with hello.elf
+```bash
+riscv32-unknown-elf-gdb hello.elf
+```
+
+**Expected GDB Startup Output:**
+```bash
+GNU gdb (GDB) 15.2
+Reading symbols from hello.elf...
+(No debugging symbols found in hello.elf)
+(gdb)
+```
+
+### Step 4: Static Analysis - Disassemble Main Function
+
+Use GDB's static analysis capabilities to examine the main function without execution.
+
+At (gdb) prompt - disassemble main function
+```bash
+disassemble main
+```
+**Working Output Analysis:**
+Dump of assembler code for function main:
+0x00010162 <+0>: addi sp,sp,-16 # Prologue: Stack allocation
+0x00010164 <+2>: sw ra,12(sp) # Save return address
+0x00010166 <+4>: sw s0,8(sp) # Save frame pointer
+0x00010168 <+6>: addi s0,sp,16 # Setup frame pointer
+0x0001016a <+8>: lui a5,0x12 # Load upper immediate
+0x0001016c <+10>: addi a0,a5,1116 # Complete string address
+0x00010170 <+14>: jal 0x104de <puts> # Function call
+0x00010172 <+16>: li a5,0 # Load return value
+0x00010174 <+18>: mv a0,a5 # Move to return register
+0x00010176 <+20>: lw ra,12(sp) # Epilogue: Restore return address
+0x00010178 <+22>: lw s0,8(sp) # Restore frame pointer
+0x0001017a <+24>: addi sp,sp,16 # Deallocate stack
+0x0001017c <+26>: ret # Return to caller
+
+
+### Step 5: Inspect Memory Addresses and Symbols
+
+Analyze specific memory locations and symbol information.
+
+Get symbol information for main function
+```bash
+info symbol 0x10170
+```
+Examine instructions at main function start
+```bash
+x/10i 0x10162
+```
+Check program entry point
+```bash
+info symbol 0x100e2
+```
+Examine entry point instructions
+```bash
+x/5i 0x100e2
+```
+
+### Step 6: Register Usage Analysis
+
+Analyze register usage patterns from the disassembled code.
+
+Examine string address location
+```bash
+x/s 0x1245c
+```
+Check instruction encoding at specific addresses
+```bash
+x/1xw 0x10162
+x/1xw 0x10170
+```
+###Exit GDB
+```bash
+quit
+```
+
+
+## 📊 Successful Analysis Results
+
+Based on your working WSL implementation:
+
+### ✅ **Main Function Analysis (0x10162-0x1017c):**
+
+#### **Function Prologue (Entry Setup):**
+| Address | Instruction | Purpose | Register Impact |
+|---------|-------------|---------|-----------------|
+| `0x10162` | `addi sp,sp,-16` | Allocate 16-byte stack frame | sp -= 16 |
+| `0x10164` | `sw ra,12(sp)` | Save return address | [sp+12] = ra |
+| `0x10166` | `sw s0,8(sp)` | Save frame pointer | [sp+8] = s0 |
+| `0x10168` | `addi s0,sp,16` | Setup new frame pointer | s0 = sp + 16 |
+
+#### **Function Body (Core Logic):**
+| Address | Instruction | Purpose | Register Impact |
+|---------|-------------|---------|-----------------|
+| `0x1016a` | `lui a5,0x12` | Load upper immediate | a5 = 0x12000 |
+| `0x1016c` | `addi a0,a5,1116` | Complete string address | a0 = 0x1245c |
+| `0x10170` | `jal 0x104de <puts>` | Call puts function | ra = 0x10172 |
+
+#### **Function Epilogue (Exit Cleanup):**
+| Address | Instruction | Purpose | Register Impact |
+|---------|-------------|---------|-----------------|
+| `0x10176` | `lw ra,12(sp)` | Restore return address | ra = [sp+12] |
+| `0x10178` | `lw s0,8(sp)` | Restore frame pointer | s0 = [sp+8] |
+| `0x1017a` | `addi sp,sp,16` | Deallocate stack frame | sp += 16 |
+| `0x1017c` | `ret` | Return to caller | pc = ra |
+
+### 🎯 **Symbol Analysis Results:**
+- **Main Function**: Located at `0x10162` in `.text` section
+- **String Constant**: "Hello, RISC-V!" at address `0x1245c`
+- **Entry Point**: `_start` function at `0x100e2`
+- **Function Call**: `puts` library function at `0x104de`
+
+## 📸 Implementation Output
+![Screenshot 2025-06-07 200729](https://github.com/user-attachments/assets/c3fb6465-b4c0-4da5-99e4-25bb24028923)
+
+
+
+*Screenshot demonstrating successful RISC-V GDB static analysis with main function disassembly, symbol inspection, and instruction-level examination.*
+
+## ⚠️ Troubleshooting Guide
+
+### Common Issues and Solutions:
+
+| Issue | Symptom | Root Cause | Solution |
+|-------|---------|------------|----------|
+| **Python Library Error** | `libpython3.10.so.1.0: No such file` | Missing Python 3.10 | Install: `sudo apt install python3.10 python3.10-dev` |
+| **SIGILL Error** | `Program terminated with signal SIGILL` | Simulator incompatibility | Use static analysis: `disassemble main` |
+| **No Debugging Symbols** | `(No debugging symbols found)` | Binary compiled without `-g` | Expected - use static analysis methods |
+| **Simulator Fails** | `target sim` connection issues | Complex statically linked binary | Skip simulator, use disassembly |
+
+### Recovery Commands:
+
+If GDB fails to start:
+```bash
+sudo ldconfig
+which riscv32-unknown-elf-gdb
+```
+If simulator debugging fails, use static analysis:
+```bash
+riscv32-unknown-elf-gdb hello.elf
+(gdb) disassemble main
+(gdb) info symbol 0x10170
+(gdb) quit
+```
