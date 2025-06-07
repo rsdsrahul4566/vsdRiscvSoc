@@ -1018,6 +1018,17 @@ With complete RISC-V ABI mastery achieved:
 
 ---
 
+
+
+
+
+
+
+
+
+
+
+
 # 🔍 Task 6: Stepping with GDB - RISC-V Debugging
 
 [![RISC-V](https://img.shields.io/badge/Architecture-RISC--V-blue.svg)](https://riscv.org/)
@@ -1101,6 +1112,7 @@ At (gdb) prompt - disassemble main function
 disassemble main
 ```
 **Working Output Analysis:**
+```bash
 
 Dump of assembler code for function main:
 0x00010162 <+0>: addi sp,sp,-16 # Prologue: Stack allocation
@@ -1116,6 +1128,7 @@ Dump of assembler code for function main:
 0x00010178 <+22>: lw s0,8(sp) # Restore frame pointer
 0x0001017a <+24>: addi sp,sp,16 # Deallocate stack
 0x0001017c <+26>: ret # Return to caller
+```
 
 
 ### Step 5: Inspect Memory Addresses and Symbols
@@ -1230,6 +1243,18 @@ riscv32-unknown-elf-gdb hello.elf
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 # 🖥️ Task 7: Running Under an Emulator - RISC-V QEMU Emulation
 
 [![RISC-V](https://img.shields.io/badge/Architecture-RISC--V-blue.svg)](https://riscv.org/)
@@ -1310,6 +1335,7 @@ qemu-system-riscv32 -nographic -machine virt -kernel hello.elf
 ```
 
 **Working Command Output:**
+```bash
 OpenSBI v1.2
    ____                    _____ ____ _____
   / __ \                  / ____|  _ \_   _|
@@ -1329,7 +1355,7 @@ Boot HART ISA : rv32imafdch
 Domain0 Next Address : 0x00010000
 
 Hello, RISC-V!
-
+```
 
 ### Step 5: Alternative QEMU Commands (If Needed)
 
@@ -1348,6 +1374,11 @@ Alternative 3: Simple bare metal
 qemu-system-riscv32 -nographic -kernel hello.elf
 ```
 ### Exit QEMU: Press Ctrl+A, then X
+
+
+## 📸 Implementation Output  
+![Screenshot 2025-06-07 203518](https://github.com/user-attachments/assets/8e0d4c2f-2c96-4828-b3ab-44f9b4792d42)
+
 
 
 ## 🎉 Success Criteria
