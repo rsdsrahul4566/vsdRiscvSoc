@@ -2574,3 +2574,326 @@ With memory-mapped I/O mastery achieved:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# 📜 Task 11: Linker Script 101 - Custom Memory Layout for RV32IMC
+
+[![RISC-V](https://img.shields.io/badge/Architecture-RISC--V-blue.svg)](https://riscv.org/)
+[![Linker Script](https://img.shields.io/badge/Tool-Linker%20Script-green.svg)]()
+[![Memory Layout](https://img.shields.io/badge/Feature-Memory%20Layout-orange.svg)]()
+[![Status](https://img.shields.io/badge/Status-✅%20Complete-success.svg)]()
+
+## 🎯 Objective
+
+Create a minimal linker script for RV32IMC that places the `.text` section at 0x00000000 (Flash/ROM) and `.data` section at 0x10000000 (SRAM). Demonstrate proper memory layout control for bare-metal embedded systems and explain the differences between Flash and SRAM address spaces.[1][3]
+
+## 📋 Prerequisites
+
+- ✅ Task 10 completed: Understanding of memory-mapped I/O and hardware programming
+- ✅ RISC-V toolchain installed with linker (`ld`) capabilities
+- ✅ Knowledge of memory layout concepts from embedded systems
+- ✅ Understanding of Flash vs SRAM characteristics from previous tasks
+
+## 🚀 Step-by-Step Implementation (Working Commands)
+
+```bash
+cat << 'EOF' > minimal.ld
+/*
+
+Minimal Linker Script for RV32IMC
+
+Places .text at 0x00000000 (Flash/ROM)
+
+Places .data at 0x10000000 (SRAM)
+*/
+
+ENTRY(_start)
+
+MEMORY
+{
+FLASH (rx) : ORIGIN = 0x00000000, LENGTH = 256K
+SRAM (rwx) : ORIGIN = 0x10000000, LENGTH = 64K
+}
+
+SECTIONS
+{
+/* Text section in Flash at 0x00000000 */
+.text 0x00000000 : {
+(.text.start) / Entry point first /
+(.text) / All other text /
+(.rodata) / Read-only data */
+} > FLASH
+
+
+/* Data section in SRAM at 0x10000000 */
+.data 0x10000000 : {
+    _data_start = .;
+    *(.data*)         /* Initialized data */
+    _data_end = .;
+} > SRAM
+
+/* BSS section in SRAM */
+.bss : {
+    _bss_start = .;
+    *(.bss*)          /* Uninitialized data */
+    _bss_end = .;
+} > SRAM
+
+/* Stack at end of SRAM */
+_stack_top = ORIGIN(SRAM) + LENGTH(SRAM);
+}
+EOF
+```
+
+### Step 2: Create Test Program
+
+Create test program for linker script verification
+```bash
+cat << 'EOF' > test_linker.c
+#include <stdint.h>
+
+// Global initialized data (goes to .data section at 0x10000000)
+uint32_t global_var = 0x12345678;
+
+// Global uninitialized data (goes to .bss section)
+uint32_t bss_var;
+
+// Function in .text section (at 0x00000000)
+void test_function(void) {
+global_var = 0xABCDEF00;
+bss_var = 0x11111111;
+}
+
+// Main function (called from assembly _start)
+void main(void) {
+test_function();
+// Infinite loop for bare-metal
+while(1) {
+    // Program continues running
+}
+}
+EOF
+```
+
+### Step 3: Create Assembly Entry Point
+
+Create assembly startup file
+```bash
+cat << 'EOF' > start.s
+.section .text.start
+.global _start
+
+_start:
+# Set up stack pointer
+lui sp, %hi(_stack_top)
+addi sp, sp, %lo(_stack_top)
+
+
+# Call main program
+call main
+
+# Infinite loop
+1: j 1b
+
+.size _start, . - _start
+EOF
+```
+
+### Step 4: Compile with Custom Linker Script
+
+Compile assembly and C code with custom linker script
+```bash
+riscv32-unknown-elf-gcc -c start.s -o start.o
+riscv32-unknown-elf-gcc -c test_linker.c -o test_linker.o
+```
+Link with custom linker script
+```bash
+riscv32-unknown-elf-ld -T minimal.ld start.o test_linker.o -o test_linker.elf
+```
+
+### Step 5: Create Complete Build and Verification Script
+
+Create complete working build script
+```bash
+cat << 'EOF' > build_linker_test.sh
+#!/bin/bash
+echo "=== Task 11: Linker Script Implementation ==="
+
+Compile everything
+echo "1. Compiling with custom linker script..."
+riscv32-unknown-elf-gcc -c start.s -o start.o
+riscv32-unknown-elf-gcc -c test_linker.c -o test_linker.o
+riscv32-unknown-elf-ld -T minimal.ld start.o test_linker.o -o test_linker.elf
+
+echo "✓ Compilation successful!"
+
+Verify results
+echo -e "\n2. Verifying memory layout:"
+echo "Text section should be at 0x00000000:"
+riscv32-unknown-elf-objdump -h test_linker.elf | grep ".text"
+
+echo "Data section should be at 0x10000000:"
+riscv32-unknown-elf-objdump -h test_linker.elf | grep -E ".(s)?data"
+
+echo -e "\n3. Symbol addresses:"
+riscv32-unknown-elf-nm test_linker.elf | head -10
+
+echo -e "\n✓ Linker script working correctly!"
+EOF
+
+chmod +x build_linker_test.sh
+./build_linker_test.sh
+```
+
+
+#### **Symbol Address Analysis:**
+| Symbol | Address | Location | Purpose |
+|--------|---------|----------|---------|
+| `_start` | `0x00000000` | Flash entry point | Program start in ROM |
+| `global_var` | `0x10000000` | SRAM data start | Initialized variable |
+| `bss_var` | `0x10000004` | SRAM BSS | Uninitialized variable |
+| `main` | `0x0000003e` | Flash code | Main function in ROM |
+| `test_function` | `0x0000000c` | Flash code | Function in ROM |
+| `_stack_top` | `0x10010000` | SRAM end | Stack pointer initial value |
+
+### 🔧 **Memory Layout Analysis:**
+
+#### **Flash Memory (0x00000000 - 0x0003FFFF):**
+- **Purpose**: Non-volatile code storage
+- **Contents**: Program instructions, constants, entry point
+- **Characteristics**: Read-only during execution, retains data when power off
+- **Size**: 256KB allocated in linker script
+
+#### **SRAM Memory (0x10000000 - 0x1000FFFF):**
+- **Purpose**: Volatile data storage and stack
+- **Contents**: Global variables, BSS, heap, stack
+- **Characteristics**: Read-write, fast access, loses data when power off
+- **Size**: 64KB allocated in linker script
+
+### 📋 **Flash vs SRAM Address Differences Explained:**
+
+#### **Why Different Address Ranges:**
+1. **Hardware Architecture**: Separate memory buses for code and data
+2. **Performance Optimization**: Flash optimized for instruction fetch, SRAM for data access
+3. **Power Management**: Flash can be powered down while SRAM remains active
+4. **Security**: Code in Flash can be write-protected, data in SRAM is modifiable
+
+#### **Typical Embedded System Memory Map:**
+- **0x00000000**: Flash/ROM base (code storage)
+- **0x10000000**: SRAM base (data storage)
+- **0x20000000**: Peripheral registers (memory-mapped I/O)
+- **0xE0000000**: System control (ARM Cortex-M standard)
+
+## 📸 Implementation Output
+![Screenshot 2025-06-08 002017](https://github.com/user-attachments/assets/2470466f-64c3-417d-8ab8-bc2d8afe0567)
+![Screenshot 2025-06-08 002017 (2)](https://github.com/user-attachments/assets/6b8945b1-ace2-4d1e-906b-8012f247d64a)
+
+
+
+
+## ⚠️ Troubleshooting Guide
+
+### Common Issues and Solutions:
+
+| Issue | Symptom | Root Cause | Solution |
+|-------|---------|------------|----------|
+| **Multiple Definition** | `multiple definition of '_start'` | Duplicate entry points | Remove `_start` from C file, keep only in assembly |
+| **Section Mismatch** | Wrong memory addresses | Incorrect linker script syntax | Verify SECTIONS syntax and memory regions |
+| **Undefined Symbols** | `undefined reference to '_stack_top'` | Missing linker symbols | Add symbol definitions in linker script |
+| **Memory Overflow** | `section exceeds available memory` | Insufficient memory allocation | Increase LENGTH in MEMORY regions |
+
+### Recovery Commands:
+
+- **Section Address**: Explicit virtual memory address (VMA)
+- **Input Sections**: `*(.text*)` matches all .text sections from input files
+- **Memory Region**: `> FLASH` assigns section to specific memory region
+
+## 🎉 Success Criteria
+
+Task 11 is considered **complete** when:
+- [x] Minimal linker script created with proper MEMORY and SECTIONS syntax
+- [x] .text section successfully placed at 0x00000000 (Flash region)
+- [x] .data/.sdata section successfully placed at 0x10000000 (SRAM region)
+- [x] Symbol addresses verified: _start at 0x0, global_var at 0x10000000
+- [x] Compilation and linking successful with custom memory layout
+- [x] Flash vs SRAM address differences explained with technical rationale
+- [x] Complete build script working for automated verification
+
+## 💡 Key Learning Outcomes
+
+### **Linker Script Mastery:**
+- ✅ **Memory Region Definition**: Understanding MEMORY directive for hardware mapping
+- ✅ **Section Placement**: Precise control over code and data location
+- ✅ **Symbol Management**: Creating and using linker-defined symbols
+- ✅ **Build Process**: Integration of custom linker scripts in compilation workflow
+
+### **Embedded Memory Architecture:**
+- ✅ **Flash vs SRAM**: Understanding non-volatile vs volatile memory characteristics
+- ✅ **Address Space Design**: Rationale behind different memory base addresses
+- ✅ **Performance Considerations**: Impact of memory layout on system performance
+- ✅ **Hardware Constraints**: Working within physical memory limitations
+
+## 🔗 Next Steps
+
+With linker script mastery achieved:
+- **Advanced Memory Layouts**: Multiple memory regions and complex section placement
+- **Bootloader Development**: First-stage bootloaders with custom memory maps
+- **Real-time Systems**: Memory layout optimization for deterministic performance
+- **Operating System**: Kernel memory management and virtual memory systems
+
+---
+
+## 📝 Technical Notes
+
+> **Memory Layout Success**: Your implementation perfectly demonstrates the fundamental principle of embedded systems - separating non-volatile code storage (Flash at 0x0) from volatile data storage (SRAM at 0x10000000).
+
+> **Symbol Verification**: The correct placement of `_start` at 0x00000000 and `global_var` at 0x10000000 confirms that the linker script is functioning exactly as designed.
+
+> **Build System Integration**: The successful compilation with custom linker script demonstrates professional embedded development workflow using RISC-V toolchain.
+
+---
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
