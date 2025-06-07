@@ -951,7 +951,7 @@ grep "a0" hello.s
 
 ## 📸 Implementation Output
 
-![Task 5 ABI Reference](Screenshot 2025-06-07 193252.png)
+![Task 5 ABI Reference](screenshots/screenshot_abi_reference.png)
 
 *Screenshot demonstrating complete RISC-V ABI compliance verification with register usage analysis and comprehensive reference documentation.*
 
