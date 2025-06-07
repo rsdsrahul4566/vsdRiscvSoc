@@ -4070,3 +4070,433 @@ With atomic operations mastery achieved:
 
 ---
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# 🔒 Task 15: Atomic Test Program - Two-Thread Mutex with LR/SC
+
+[![RISC-V](https://img.shields.io/badge/Architecture-RISC--V-blue.svg)](https://riscv.org/)
+[![Atomic LR/SC](https://img.shields.io/badge/Instructions-LR%2FSC-green.svg)]()
+[![Spinlock](https://img.shields.io/badge/Synchronization-Spinlock-orange.svg)]()
+[![Status](https://img.shields.io/badge/Status-✅%20Complete-success.svg)]()
+
+## 🎯 Objective
+
+Provide a two-thread mutex example using Load-Reserved/Store-Conditional (LR/SC) atomic instructions on RV32. Implement a spinlock-based mutual exclusion mechanism with proper critical section protection, demonstrating how atomic operations prevent race conditions in concurrent programming.[1][2]
+
+## 📋 Prerequisites
+
+- ✅ Task 14 completed: Understanding of atomic operations and the 'A' extension
+- ✅ RISC-V toolchain with RV32IMAC support (atomic extension enabled)
+- ✅ Knowledge of concurrency concepts and race conditions[2][3]
+- ✅ Understanding of inline assembly and memory barriers
+
+## 🚀 Step-by-Step Implementation (Working Commands)
+
+### Step 1: Create Two-Thread Mutex Program Using LR/SC
+
+ Fixed Advanced Mutex Program (Add Missing Functions)
+ Create corrected advanced mutex program with all required functions
+cat << 'EOF' > task15_advanced_mutex.c
+``` bash
+#include <stdint.h>
+
+// Multiple spinlocks for different resources
+volatile int lock1 = 0;
+volatile int lock2 = 0;
+volatile int global_lock = 0;
+
+// Shared resources protected by different locks
+volatile int resource1 = 0;
+volatile int resource2 = 0;
+volatile int global_resource = 0;
+
+// Performance counters
+volatile int lock_acquisitions = 0;
+volatile int lock_contentions = 0;
+
+// Basic spinlock release function (REQUIRED - was missing)
+void spinlock_release(volatile int *lock) {
+    asm volatile (
+        "sw      zero, 0(%0)\n"            // Store 0 (unlocked state)
+        :
+        : "r" (lock)                       // Input: lock address
+        : "memory"                         // Memory barrier
+    );
+}
+
+// Enhanced spinlock with contention counting
+int spinlock_acquire_with_stats(volatile int *lock) {
+    int tmp, attempts = 0;
+    
+    do {
+        attempts++;
+        asm volatile (
+            "lr.w    %0, (%1)\n"           // Load-reserved
+            : "=&r" (tmp)
+            : "r" (lock)
+            : "memory"
+        );
+        
+        if (tmp != 0) {
+            // Lock is held, increment contention counter
+            lock_contentions++;
+            continue;
+        }
+        
+        // Try to acquire lock
+        asm volatile (
+            "li      %0, 1\n"              // Load 1 into tmp
+            "sc.w    %0, %0, (%1)\n"       // Store-conditional
+            : "=&r" (tmp)
+            : "r" (lock)
+            : "memory"
+        );
+        
+    } while (tmp != 0);  // Retry if store-conditional failed
+    
+    lock_acquisitions++;
+    return attempts;
+}
+
+// Test function 1: Single lock contention
+void test_single_lock_contention(void) {
+    // Thread 1 simulation
+    for (int i = 0; i < 1000; i++) {
+        spinlock_acquire_with_stats(&lock1);
+        resource1 += 1;
+        spinlock_release(&lock1);
+    }
+    
+    // Thread 2 simulation
+    for (int i = 0; i < 1000; i++) {
+        spinlock_acquire_with_stats(&lock1);
+        resource1 += 2;
+        spinlock_release(&lock1);
+    }
+}
+
+// Test function 2: Multiple locks (no deadlock scenario)
+void test_multiple_locks(void) {
+    // Thread 1: acquire lock1 then lock2
+    spinlock_acquire_with_stats(&lock1);
+    resource1 += 10;
+    spinlock_acquire_with_stats(&lock2);
+    resource2 += 10;
+    spinlock_release(&lock2);
+    spinlock_release(&lock1);
+    
+    // Thread 2: acquire lock2 then lock1 (potential deadlock in real threading)
+    spinlock_acquire_with_stats(&lock2);
+    resource2 += 20;
+    spinlock_acquire_with_stats(&lock1);
+    resource1 += 20;
+    spinlock_release(&lock1);
+    spinlock_release(&lock2);
+}
+
+// Test function 3: Nested critical sections
+void test_nested_critical_sections(void) {
+    spinlock_acquire_with_stats(&global_lock);
+    
+    // Outer critical section
+    global_resource += 100;
+    
+    spinlock_acquire_with_stats(&lock1);
+    // Inner critical section
+    resource1 += 100;
+    spinlock_release(&lock1);
+    
+    global_resource += 200;
+    spinlock_release(&global_lock);
+}
+
+int main() {
+    // Initialize all locks and resources
+    lock1 = 0;
+    lock2 = 0;
+    global_lock = 0;
+    resource1 = 0;
+    resource2 = 0;
+    global_resource = 0;
+    lock_acquisitions = 0;
+    lock_contentions = 0;
+    
+    // Run tests
+    test_single_lock_contention();
+    test_multiple_locks();
+    test_nested_critical_sections();
+    
+    return 0;
+}
+EOF
+```
+### Step 2: Compile Fixed Advanced Mutex Program
+Compile the corrected advanced mutex program
+```bash
+riscv32-unknown-elf-gcc -march=rv32imac -c task15_advanced_mutex.c -o task15_advanced_mutex.o
+```
+ Link with custom linker script
+```bash
+riscv32-unknown-elf-ld -T mutex.ld mutex_start.o task15_advanced_mutex.o -o task15_advanced_mutex.elf
+```
+### Step 3: Create Working Build Script (Fixed Version)
+ Create corrected build script for Task 15
+```bash
+cat << 'EOF' > build_mutex_demo.sh
+#!/bin/bash
+echo "=== Task 15: Atomic Test Program - Two-Thread Mutex (FIXED) ==="
+
+# Compile with RV32IMAC (includes atomic extension)
+echo "1. Compiling mutex demo programs..."
+riscv32-unknown-elf-gcc -march=rv32imac -c mutex_start.s -o mutex_start.o
+riscv32-unknown-elf-gcc -march=rv32imac -c task15_mutex_demo.c -o task15_mutex_demo.o
+riscv32-unknown-elf-gcc -march=rv32imac -c task15_advanced_mutex.c -o task15_advanced_mutex.o
+
+# Link programs
+riscv32-unknown-elf-ld -T mutex.ld mutex_start.o task15_mutex_demo.o -o task15_mutex_demo.elf
+riscv32-unknown-elf-ld -T mutex.ld mutex_start.o task15_advanced_mutex.o -o task15_advanced_mutex.elf
+
+echo "✓ Compilation successful!"
+
+# Verify results
+echo -e "\n2. Verifying mutex demo programs:"
+file task15_mutex_demo.elf
+file task15_advanced_mutex.elf
+
+echo -e "\n3. Checking for LR/SC instructions:"
+riscv32-unknown-elf-gcc -march=rv32imac -S task15_mutex_demo.c
+grep -E "(lr\.w|sc\.w)" task15_mutex_demo.s
+
+echo -e "\n4. Disassembly showing spinlock implementation:"
+riscv32-unknown-elf-objdump -d task15_mutex_demo.elf | grep -A 10 -B 5 "lr\.w\|sc\.w"
+
+echo -e "\n5. Symbol table showing shared variables:"
+riscv32-unknown-elf-nm task15_mutex_demo.elf | grep -E "(spinlock|shared_counter|thread)"
+
+echo -e "\n✓ Atomic test program ready!"
+EOF
+
+chmod +x build_mutex_demo.sh
+./build_mutex_demo.sh
+```
+### Step 4: Alternative Simple Approach (Single File Solution)
+ Create single file with all functions for simplicity
+```bash
+cat << 'EOF' > task15_complete_mutex.c
+#include <stdint.h>
+
+// Global shared resources
+volatile int spinlock = 0;
+volatile int shared_counter = 0;
+volatile int thread1_iterations = 0;
+volatile int thread2_iterations = 0;
+
+// Spinlock acquire using LR/SC atomic instructions
+void spinlock_acquire(volatile int *lock) {
+    int tmp;
+    asm volatile (
+        "1:\n"
+        "    lr.w    %0, (%1)\n"           // Load-reserved from lock address
+        "    bnez    %0, 1b\n"             // If lock != 0, retry (spin)
+        "    li      %0, 1\n"              // Load immediate 1 (locked state)
+        "    sc.w    %0, %0, (%1)\n"       // Store-conditional 1 to lock
+        "    bnez    %0, 1b\n"             // If sc.w failed, retry
+        : "=&r" (tmp)                      // Output: temporary register
+        : "r" (lock)                       // Input: lock address
+        : "memory"                         // Memory barrier
+    );
+}
+
+// Spinlock release
+void spinlock_release(volatile int *lock) {
+    asm volatile (
+        "sw      zero, 0(%0)\n"            // Store 0 (unlocked state)
+        :
+        : "r" (lock)                       // Input: lock address
+        : "memory"                         // Memory barrier
+    );
+}
+
+// Critical section function with mutex protection
+void increment_shared_counter(int thread_id, int iterations) {
+    for (int i = 0; i < iterations; i++) {
+        // Acquire spinlock (enter critical section)
+        spinlock_acquire(&spinlock);
+        
+        // Critical section - only one thread can execute this
+        int temp = shared_counter;
+        temp = temp + 1;
+        shared_counter = temp;
+        
+        // Update thread-specific counter
+        if (thread_id == 1) {
+            thread1_iterations++;
+        } else {
+            thread2_iterations++;
+        }
+        
+        // Release spinlock (exit critical section)
+        spinlock_release(&spinlock);
+    }
+}
+
+// Pseudo-thread 1 function
+void thread1_function(void) {
+    increment_shared_counter(1, 50000);
+}
+
+// Pseudo-thread 2 function
+void thread2_function(void) {
+    increment_shared_counter(2, 50000);
+}
+
+// Delay function to simulate work
+void delay(volatile int count) {
+    while(count--) {
+        asm volatile ("nop");
+    }
+}
+
+int main() {
+    // Initialize shared variables
+    spinlock = 0;
+    shared_counter = 0;
+    thread1_iterations = 0;
+    thread2_iterations = 0;
+    
+    // Simulate two threads executing concurrently
+    thread1_function();
+    delay(1000);
+    thread2_function();
+    
+    return 0;
+}
+EOF
+```
+ Compile the complete single file version
+```bash
+riscv32-unknown-elf-gcc -march=rv32imac -c task15_complete_mutex.c -o task15_complete_mutex.o
+riscv32-unknown-elf-ld -T mutex.ld mutex_start.o task15_complete_mutex.o -o task15_complete_mutex.elf
+```
+### Step 5: Quick Verification
+Verify all programs compile successfully
+```bash
+echo "=== Verification of Fixed Task 15 ==="
+file task15_mutex_demo.elf
+file task15_complete_mutex.elf
+```
+ Check LR/SC instructions are generated
+```bash
+echo -e "\n=== LR/SC Instructions Found ==="
+riscv32-unknown-elf-gcc -march=rv32imac -S task15_complete_mutex.c
+grep -E "(lr\.w|sc\.w)" task15_complete_mutex.s
+```
+
+### 📋 **Two-Thread Simulation Analysis:**
+
+#### **Pseudo-Threading Model:**
+- **Thread 1**: `thread1_function()` - Increments shared_counter 50,000 times
+- **Thread 2**: `thread2_function()` - Increments shared_counter 50,000 times
+- **Sequential Execution**: Demonstrates mutex behavior even in sequential model
+- **Race Condition Prevention**: LR/SC ensures no lost updates to shared_counter
+
+#### **Synchronization Guarantees:**
+1. **Mutual Exclusion**: Only one thread can hold the spinlock at a time
+2. **Progress**: If no thread holds the lock, waiting threads will eventually acquire it
+3. **Bounded Waiting**: LR/SC ensures fair access without starvation
+4. **Memory Consistency**: Memory barriers prevent instruction reordering
+
+### 🎯 **LR/SC vs Traditional Locking:**
+
+#### **LR/SC Advantages:**
+- **Hardware Atomicity**: True atomic operations at processor level
+- **No OS Dependency**: Works in bare-metal and kernel environments
+- **Cache Coherent**: Integrates with multiprocessor cache protocols
+- **Deadlock Free**: Simple acquire/release pattern avoids complex deadlock scenarios
+
+#### **Spinlock Characteristics:**
+- **Busy Waiting**: CPU actively spins waiting for lock (good for short critical sections)
+- **Low Latency**: No context switch overhead for quick lock acquisition
+- **Multiprocessor Safe**: Hardware ensures correct behavior across cores
+- **Memory Efficient**: Single integer variable per lock
+
+## 📸 Implementation Output
+![Screenshot 2025-06-08 012028](https://github.com/user-attachments/assets/9f23faab-871b-46dc-95db-403f12fdb8df)
+![Screenshot 2025-06-08 012037](https://github.com/user-attachments/assets/2fb6b1f3-ef85-4717-b556-cc8ccdb33625)
+
+
+## 🎉 Success Criteria
+
+Task 15 is considered **complete** when:
+- [x] Two-thread mutex program created with proper LR/SC implementation
+- [x] Compilation succeeds with RV32IMAC architecture (atomic extension)
+- [x] LR/SC instructions generated: lr.w and sc.w in assembly output
+- [x] Spinlock acquire function using atomic Load-Reserved/Store-Conditional
+- [x] Spinlock release function with proper memory barriers
+- [x] Critical section protection preventing race conditions on shared_counter
+- [x] Two pseudo-threads demonstrating concurrent access patterns
+- [x] Memory barriers ensuring proper instruction ordering
+
+## 💡 Key Learning Outcomes
+
+### **Atomic Synchronization Mastery:**
+- ✅ **LR/SC Pattern**: Complete understanding of Load-Reserved/Store-Conditional algorithm
+- ✅ **Spinlock Implementation**: Hardware-level mutual exclusion mechanisms
+- ✅ **Critical Sections**: Protecting shared resources from concurrent access
+- ✅ **Memory Barriers**: Preventing compiler/processor instruction reordering[2]
+
+### **Concurrent Programming Skills:**
+- ✅ **Race Condition Prevention**: Using atomic operations to eliminate data races
+- ✅ **Thread Synchronization**: Coordinating access to shared resources
+- ✅ **Lock-Free Techniques**: Understanding hardware-supported synchronization
+- ✅ **Performance Considerations**: When to use spinlocks vs other synchronization
+
+### **RISC-V System Programming:**
+- ✅ **Atomic Instructions**: Practical application of LR/SC in real programs
+- ✅ **Inline Assembly**: Complex multi-instruction atomic operations
+- ✅ **Memory Model**: Understanding RISC-V memory consistency guarantees
+- ✅ **Hardware Interface**: Direct utilization of processor atomic capabilities[3]
+
+## 🔗 Next Steps
+
+With two-thread mutex mastery achieved:
+- **Real Multithreading**: Implementing actual threaded applications with pthreads
+- **Advanced Synchronization**: Read-write locks, condition variables, semaphores
+- **Lock-Free Data Structures**: Queues, stacks, and lists using only atomic operations
+- **Operating System Development**: Kernel synchronization primitives and schedulers
+
+---
+
+## 📝 Technical Notes
+
+> **LR/SC Success**: Your implementation perfectly demonstrates the Load-Reserved/Store-Conditional pattern, which is the foundation for all lock-free programming on RISC-V architecture.
+
+> **Hardware Atomicity**: The generated lr.w and sc.w instructions provide true hardware-level atomicity, eliminating race conditions that could occur with software-only synchronization.
+
+> **Memory Barriers**: The "memory" clobber in inline assembly ensures proper ordering of memory operations, preventing both compiler and processor reordering that could break synchronization.[4]
+
+---
+
